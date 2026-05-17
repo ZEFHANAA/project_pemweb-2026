@@ -4,7 +4,7 @@
 
 ---
 
-## 👤 Informasi Mahasiswa
+## 👤 Tentang Pengembang
 
 | | |
 |---|---|
@@ -32,8 +32,12 @@ Sistem Pencarian & Simpan Lokasi Wisata adalah aplikasi web berbasis Laravel yan
 
 | Teknologi | Kegunaan |
 |---|---|
-| **Laravel 11** | Backend framework (PHP) |
-| **MySQL** | Database penyimpanan lokasi |
+| **Laravel 12** | Backend framework (PHP) |
+| **MariaDB 10.11** | Database penyimpanan lokasi |
+| **Filament v3** | Panel admin (manajemen user, log aktivitas) |
+| **Filament Shield** | Manajemen permission berbasis role di admin |
+| **Spatie Permission** | Sistem role: `super_admin` & `user` |
+| **Spatie Activity Log** | Log aktivitas admin (akses, perubahan data) |
 | **Leaflet.js** | Peta interaktif |
 | **OpenStreetMap** | Tile peta |
 | **Nominatim API** | Geocoding (pencarian lokasi) |
@@ -65,7 +69,13 @@ Sistem Pencarian & Simpan Lokasi Wisata adalah aplikasi web berbasis Laravel yan
 - Lokasi bersifat **privat** — hanya bisa dilihat oleh pemiliknya
 - Export semua lokasi milik user ke file **CSV** (dengan BOM UTF-8 untuk kompatibilitas Excel)
 
----
+### 🛡️ Panel Admin (Filament — `/admin`)
+- Manajemen user: tambah, edit, hapus akun pengguna
+- Manajemen role & permission via Filament Shield (`super_admin`, `user`)
+- Widget log aktivitas terbaru (`LatestAccessLogs`)
+- Edit profil admin langsung dari panel
+- Hanya bisa diakses oleh user dengan role `super_admin`
+
 
 ## 🚀 Cara Menjalankan
 
@@ -96,13 +106,19 @@ php artisan key:generate
 # 6. Migrasi database
 php artisan migrate
 
-# 7. (Opsional) Seed data awal
+# 7. Seed akun demo (admin + user)
 php artisan db:seed
 ```
 
 ### Akses Aplikasi
-- **URL**: `https://project_pemweb.test`
-- **Dashboard Admin**: `https://project_pemweb.test/admin` *(jika tersedia)*
+- **URL Utama**: `https://project_pemweb.test`
+- **Dashboard Admin (Filament)**: `https://project_pemweb.test/admin`
+
+### Akun Default (setelah `db:seed`)
+| Role | Email | Password |
+|---|---|---|
+| Super Admin | `admin@admin.com` | `password` |
+| User | `user@admin.com` | `password` |
 
 ---
 
@@ -112,29 +128,43 @@ php artisan db:seed
 project_pemweb/
 ├── src/
 │   ├── app/
+│   │   ├── Filament/
+│   │   │   ├── Admin/
+│   │   │   │   ├── Resources/
+│   │   │   │   │   └── UserResource.php        # CRUD user di panel admin
+│   │   │   │   └── Widgets/
+│   │   │   │       └── LatestAccessLogs.php    # Widget log aktivitas
+│   │   │   └── Pages/Auth/
+│   │   │       └── EditProfile.php             # Halaman edit profil admin
 │   │   ├── Http/
-│   │   │   ├── Controllers/
-│   │   │   │   ├── AuthController.php      # Login, register, logout
-│   │   │   │   └── LokasiController.php    # CRUD lokasi + export CSV
-│   │   │   └── Middleware/
-│   │   └── Models/
-│   │       ├── User.php
-│   │       └── Lokasi.php
+│   │   │   └── Controllers/
+│   │   │       ├── AuthController.php          # Login, register, logout
+│   │   │       └── LokasiController.php        # CRUD lokasi + export CSV
+│   │   ├── Models/
+│   │   │   ├── User.php
+│   │   │   └── Lokasi.php
+│   │   └── Providers/
+│   │       └── Filament/
+│   │           └── AdminPanelProvider.php      # Konfigurasi panel admin
 │   ├── database/
-│   │   └── migrations/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   │       ├── DatabaseSeeder.php
+│   │       ├── RoleSeeder.php                  # Seed role: super_admin, user
+│   │       └── UserSeeder.php                  # Seed akun demo
 │   ├── public/
 │   │   ├── css/
-│   │   │   └── style.css                  # Stylesheet utama
+│   │   │   └── style.css                      # Stylesheet utama
 │   │   └── js/
-│   │       └── script.js                  # Logika frontend
+│   │       └── script.js                      # Logika frontend
 │   ├── resources/
 │   │   └── views/
 │   │       ├── auth/
-│   │       │   ├── login.blade.php         # Halaman masuk
-│   │       │   └── register.blade.php      # Halaman daftar
-│   │       └── welcome.blade.php           # Halaman utama (peta)
+│   │       │   ├── login.blade.php             # Halaman masuk
+│   │       │   └── register.blade.php          # Halaman daftar
+│   │       └── welcome.blade.php               # Halaman utama (peta)
 │   └── routes/
-│       ├── web.php                         # Semua route (termasuk API lokasi)
+│       ├── web.php                             # Route utama + API lokasi
 │       └── api.php
 └── README.md
 ```
