@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Lokasi extends Model
 {
-    protected $fillable = ['nama_lokasi', 'latitude', 'longitude', 'deskripsi', 'user_id'];
+    protected $fillable = ['nama_lokasi', 'latitude', 'longitude', 'deskripsi', 'kategori', 'user_id'];
 
     /**
      * Get the user that owns this location

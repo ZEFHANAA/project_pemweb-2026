@@ -1,16 +1,29 @@
 // ==================== Global Variables ====================
 let map;
+let markerCluster; // Fitur 11: cluster group
 let markers = [];
 let currentSearchMarker = null;
 let savedLocations = [];
 const API_URL = '/api/lokasi';
 let currentEditingId = null;
 
+// ==================== Security Utilities ====================
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return String(unsafe)
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
 // ==================== Initialization ====================
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     loadLocations();
     setupEventListeners();
+    initDarkMode();    // Fitur 12
+    initSearchHistory(); // Fitur 2
 });
 
 // ==================== Map Initialization ====================
@@ -22,7 +35,22 @@ function initMap() {
         maxZoom: 19, minZoom: 2
     }).addTo(map);
 
-    console.log('✓ Peta berhasil diinisialisasi');
+    // Fitur 11: Inisialisasi marker cluster group
+    markerCluster = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 60,
+        iconCreateFunction: function(cluster) {
+            const count = cluster.getChildCount();
+            return L.divIcon({
+                html: `<div class="cluster-icon">${count}</div>`,
+                className: 'custom-cluster',
+                iconSize: [40, 40]
+            });
+        }
+    });
+    map.addLayer(markerCluster);
+
+    console.log('✓ Peta berhasil diinisialisasi dengan cluster support');
 }
 
 // ==================== Event Listeners ====================
@@ -65,8 +93,32 @@ function setupEventListeners() {
     // Close modal when clicking outside
     window.addEventListener('click', (event) => {
         const modal = document.getElementById('editModal');
-        if (event.target === modal) {
-            closeEditModal();
+        const profileModal = document.getElementById('profileModal');
+        if (event.target === modal) closeEditModal();
+        if (event.target === profileModal) closeProfileModal();
+    });
+
+    // Filter bar
+    const filterInput    = document.getElementById('filterInput');
+    const filterKategori = document.getElementById('filterKategori');
+    function applyFilter() {
+        const text = filterInput    ? filterInput.value.trim() : '';
+        const kat  = filterKategori ? filterKategori.value     : '';
+        renderLocationsList(text, kat);
+    }
+    if (filterInput)    filterInput.addEventListener('input', applyFilter);
+    if (filterKategori) filterKategori.addEventListener('change', applyFilter);
+
+    // Fitur 12: Dark mode toggle
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) themeBtn.addEventListener('click', toggleDarkMode);
+
+    // Tutup multi-result saat klik di luar
+    document.addEventListener('click', (e) => {
+        const list = document.getElementById('multiResultList');
+        const form = document.getElementById('searchForm');
+        if (list && form && !form.contains(e.target) && !list.contains(e.target)) {
+            list.style.display = 'none';
         }
     });
 }
@@ -79,13 +131,18 @@ async function handleSearch(e) {
     const query = searchInput.value.trim();
 
     if (!query) {
-        showSearchError('Masukkan nama lokasi yang valid');
+        showToast('Masukkan nama lokasi yang valid', 'error');
         return;
     }
+
+    // Simpan ke riwayat (Fitur 2)
+    saveSearchHistory(query);
+    hideSearchHistory();
 
     // Clear previous results and errors
     hideSearchError();
     hideSearchResult();
+    hideMultiResultList();
     setSearchBusy(true);
     clearCurrentSearchMarker();
 
@@ -98,9 +155,15 @@ async function handleSearch(e) {
             return;
         }
 
-        const location = data[0];
-        displaySearchResult(location);
-        addSearchMarkerToMap(location);
+        if (data.length === 1) {
+            // Langsung tampilkan jika hanya 1 hasil
+            displaySearchResult(data[0]);
+            addSearchMarkerToMap(data[0]);
+        } else {
+            // Fitur 7: Tampilkan daftar multi hasil
+            displayMultiResultList(data);
+        }
+
         setSearchBusy(false);
 
     } catch (error) {
@@ -112,7 +175,8 @@ async function handleSearch(e) {
 
 // ==================== Nominatim API ====================
 async function searchLocation(query) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+    // Fitur 7: limit=7 untuk mendapat banyak hasil
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=7&addressdetails=1&countrycodes=id`;
 
     try {
         const response = await fetch(url);
@@ -138,6 +202,9 @@ function displaySearchResult(location) {
     const name = location.name || location.display_name;
 
     resultContent.innerHTML = `
+        <div id="resultThumbnail" class="result-thumbnail" style="display:none;">
+            <img id="resultThumbnailImg" src="" alt="Foto ${name}" class="thumbnail-img">
+        </div>
         <h3>${name}</h3>
         <div class="result-detail">
             <strong>Latitude:</strong> ${latitude.toFixed(6)}
@@ -149,15 +216,36 @@ function displaySearchResult(location) {
             <strong>Alamat:</strong> ${location.display_name}
         </div>
         <div class="result-detail">
+            <label for="resultKategori"><strong>Kategori:</strong></label>
+            <select id="resultKategori" class="filter-select" style="width:100%;margin-top:4px;">
+                <option value="Pantai">🏖️ Pantai</option>
+                <option value="Gunung">🏔️ Gunung</option>
+                <option value="Kota">🏙️ Kota</option>
+                <option value="Budaya">🏛️ Budaya</option>
+                <option value="Kuliner">🍜 Kuliner</option>
+                <option value="Alam">🌿 Alam</option>
+                <option value="Lainnya" selected>📍 Lainnya</option>
+            </select>
+        </div>
+        <div class="result-detail">
             <label for="resultDeskripsi"><strong>Deskripsi (opsional):</strong></label>
             <textarea id="resultDeskripsi" rows="3" placeholder="Tambahkan deskripsi singkat"></textarea>
         </div>
-        <button id="btnSaveResult" class="btn btn-secondary btn-save">
-            Simpan Lokasi
-        </button>
+        <div class="result-actions">
+            <button id="btnSaveResult" class="btn btn-secondary btn-save">
+                Simpan Lokasi
+            </button>
+            <a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" rel="noopener" class="btn-gmaps">
+                🗺️ Google Maps
+            </a>
+        </div>
     `;
 
     showSearchResult(true);
+
+    // Fetch thumbnail dari Wikipedia
+    fetchWikipediaThumbnail(name);
+
     // attach event listener safely (avoid inline onclick quoting issues)
     const btn = document.getElementById('btnSaveResult');
     if (btn) {
@@ -169,6 +257,27 @@ function displaySearchResult(location) {
                 showSearchError('❌ Gagal menyimpan lokasi (client error)', 'error');
             }
         });
+    }
+}
+
+// ==================== Wikipedia Thumbnail ====================
+async function fetchWikipediaThumbnail(query) {
+    try {
+        const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        const imgUrl = data?.thumbnail?.source || data?.originalimage?.source;
+        if (imgUrl) {
+            const thumbEl = document.getElementById('resultThumbnail');
+            const imgEl   = document.getElementById('resultThumbnailImg');
+            if (thumbEl && imgEl) {
+                imgEl.src = imgUrl;
+                thumbEl.style.display = 'block';
+            }
+        }
+    } catch (_) {
+        // Jika gagal ambil foto, tidak ada masalah - tampilan tetap normal
     }
 }
 
@@ -248,9 +357,11 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
     }
 
     try {
-        // read optional description from search result textarea
-        const resultDescEl = document.getElementById('resultDeskripsi');
-        const resultDeskripsi = resultDescEl ? resultDescEl.value.trim() : '';
+        // read optional description and kategori from search result
+        const resultDescEl     = document.getElementById('resultDeskripsi');
+        const resultKategoriEl = document.getElementById('resultKategori');
+        const resultDeskripsi  = resultDescEl     ? resultDescEl.value.trim()  : '';
+        const resultKategori   = resultKategoriEl ? resultKategoriEl.value      : 'Lainnya';
 
         // Send to API
         const response = await fetch(API_URL, {
@@ -263,13 +374,14 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
                 nama_lokasi: nama_lokasi,
                 latitude: normalizedLatitude,
                 longitude: normalizedLongitude,
-                deskripsi: resultDeskripsi
+                deskripsi: resultDeskripsi,
+                kategori:  resultKategori
             })
         });
 
         if (!response.ok) {
             if (response.status === 401) {
-                showSearchError('Please login to save this location', 'error');
+                showSearchError('Silakan login terlebih dahulu untuk menyimpan lokasi', 'error');
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
@@ -335,10 +447,17 @@ async function loadLocations() {
 }
 
 // ==================== Render Locations List ====================
-function renderLocationsList() {
+function renderLocationsList(filterText = '', filterKat = '') {
     const locationsList = document.getElementById('locationsList');
     const clearAllBtn = document.getElementById('clearAllBtn');
     updateSavedCount();
+
+    // Apply filters
+    const filtered = savedLocations.filter(loc => {
+        const matchText = !filterText || (loc.nama_lokasi || '').toLowerCase().includes(filterText.toLowerCase());
+        const matchKat  = !filterKat  || (loc.kategori || 'Lainnya') === filterKat;
+        return matchText && matchKat;
+    });
 
     if (savedLocations.length === 0) {
         locationsList.innerHTML = `
@@ -351,20 +470,44 @@ function renderLocationsList() {
         return;
     }
 
+    if (filtered.length === 0) {
+        locationsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <p class="empty-title">Tidak ada hasil</p>
+                <p class="empty-hint">Coba ubah kata kunci atau kategori filter</p>
+            </div>`;
+        clearAllBtn.style.display = 'block';
+        return;
+    }
+
     clearAllBtn.style.display = 'block';
 
-    const listHTML = savedLocations.map(location => {
+    // Map kategori to emoji
+    const kategoriEmoji = {
+        'Pantai': '🏖️', 'Gunung': '🏔️', 'Kota': '🏙️',
+        'Budaya': '🏛️', 'Kuliner': '🍜', 'Alam': '🌿', 'Lainnya': '📍'
+    };
+
+    const listHTML = filtered.map(location => {
         const lat = Number(location.latitude);
         const lng = Number(location.longitude);
         const latStr = Number.isFinite(lat) ? lat.toFixed(4) : '';
         const lngStr = Number.isFinite(lng) ? lng.toFixed(4) : '';
         const safeName = (location.nama_lokasi || '').replace(/'/g, "\\'").replace(/\n/g, ' ');
         const desc = location.deskripsi ? location.deskripsi : '';
+        const kat  = location.kategori  || 'Lainnya';
+        const emoji = kategoriEmoji[kat] || '📍';
+        const mapsUrl  = `https://www.google.com/maps?q=${lat},${lng}`;
+        const shareUrl = `/lokasi/${location.id}`;
 
         return `
-        <li class="location-item" data-location-id="${location.id}">
+        <li class="location-item" data-location-id="${location.id}" data-kategori="${kat}">
             <div class="location-item-content" tabindex="0" onclick="focusLocation(${location.id}, ${lat || 0}, ${lng || 0})">
-                <div class="location-item-name">${location.nama_lokasi}</div>
+                <div class="location-item-header">
+                    <div class="location-item-name">${location.nama_lokasi}</div>
+                    <span class="kategori-badge">${emoji} ${kat}</span>
+                </div>
                 <div class="location-item-coords">
                     ${latStr}, ${lngStr}
                 </div>
@@ -377,6 +520,12 @@ function renderLocationsList() {
                 <button type="button" aria-label="Edit ${safeName}" class="btn-edit" onclick="openEditModal(${location.id}, '${safeName}', ${lat || 0}, ${lng || 0})">
                     Edit
                 </button>
+                <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-gmaps-sm" aria-label="Buka di Google Maps" title="Google Maps">
+                    🗺️
+                </a>
+                <a href="${shareUrl}" target="_blank" rel="noopener" class="btn-share-sm" aria-label="Bagikan ${safeName}" title="Bagikan">
+                    🔗
+                </a>
                 <button type="button" aria-label="Hapus ${safeName}" class="btn-delete" onclick="deleteLokasi(${location.id})">
                     Hapus
                 </button>
@@ -387,7 +536,7 @@ function renderLocationsList() {
 
     locationsList.innerHTML = `<ul class="locations-list-ul">${listHTML}</ul>`;
 
-    console.log(`✓ ${savedLocations.length} lokasi ditampilkan`);
+    console.log(`✓ ${filtered.length}/${savedLocations.length} lokasi ditampilkan`);
 }
 
 // ==================== Delete Location ====================
@@ -525,7 +674,7 @@ async function handleClearAll() {
 }
 
 // ==================== Update Location ====================
-async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = '') {
+async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = '', kategori = 'Lainnya') {
     const index = savedLocations.findIndex(loc => loc.id === id);
 
     if (index === -1) {
@@ -563,7 +712,8 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
                     nama_lokasi: cleanName,
                     latitude: normalizedLatitude,
                     longitude: normalizedLongitude,
-                    deskripsi: deskripsi || (savedLocations[index].deskripsi || '')
+                    deskripsi: deskripsi || (savedLocations[index].deskripsi || ''),
+                    kategori:  kategori  || (savedLocations[index].kategori  || 'Lainnya')
                 })
         });
 
@@ -606,20 +756,20 @@ function addMarkerToMap(location) {
         })
     }).bindPopup(`
         <div style="text-align: center;">
-            <h4 style="margin: 5px 0; color: #333;">${location.nama_lokasi}</h4>
+            <h4 style="margin: 5px 0; color: #333;">${escapeHtml(location.nama_lokasi)}</h4>
             <p style="margin: 5px 0; font-size: 12px; color: #666;">
                 Lat: ${Number.isFinite(lat) ? lat.toFixed(4) : ''}<br>
                 Lon: ${Number.isFinite(lng) ? lng.toFixed(4) : ''}
             </p>
-            ${location.deskripsi ? `<p style="margin:5px 0; font-size:12px; color:#555;">${location.deskripsi}</p>` : ''}
+            ${location.deskripsi ? `<p style="margin:5px 0; font-size:12px; color:#555;">${escapeHtml(location.deskripsi)}</p>` : ''}
         </div>
     `);
 
     marker.locationId = location.id;
     markers.push(marker);
-    marker.addTo(map);
+    markerCluster.addLayer(marker); // Fitur 11: tambahkan ke cluster
 
-    console.log('✓ Marker ditambahkan:', location.nama_lokasi);
+    console.log('\u2713 Marker ditambahkan:', location.nama_lokasi);
 }
 
 function renderMarkersOnMap() {
@@ -630,14 +780,14 @@ function renderMarkersOnMap() {
 function removeMarkerFromMap(id) {
     const index = markers.findIndex(m => m.locationId === id);
     if (index !== -1) {
-        map.removeLayer(markers[index]);
+        markerCluster.removeLayer(markers[index]); // Fitur 11
         markers.splice(index, 1);
-        console.log('✓ Marker dihapus');
+        console.log('\u2713 Marker dihapus');
     }
 }
 
 function clearAllMarkersFromMap() {
-    markers.forEach(marker => map.removeLayer(marker));
+    markerCluster.clearLayers(); // Fitur 11
     markers = [];
 }
 
@@ -660,7 +810,7 @@ function addSearchMarkerToMap(location) {
         })
     }).bindPopup(`
         <div style="text-align: center;">
-            <h4 style="margin: 5px 0; color: #667eea;">${name}</h4>
+            <h4 style="margin: 5px 0; color: #667eea;">${escapeHtml(name)}</h4>
             <p style="margin: 5px 0; font-size: 12px; color: #666;">
                 Hasil Pencarian
             </p>
@@ -712,25 +862,77 @@ function hideSearchResult() {
     showSearchResult(false);
 }
 
+// ==================== Multi Result List (Fitur 7) ====================
+function displayMultiResultList(results) {
+    const list = document.getElementById('multiResultList');
+    if (!list) return;
+
+    const typeLabel = (type) => {
+        const map = {
+            'tourism': '\ud83c\udfd6\ufe0f Wisata', 'natural': '\ud83c\udf3f Alam',
+            'historic': '\ud83c\udfdb\ufe0f Sejarah', 'leisure': '\ud83c\udfd9\ufe0f Rekreasi',
+            'mountain': '\ud83c\udfd4\ufe0f Gunung', 'peak': '\ud83c\udfd4\ufe0f Puncak',
+            'beach': '\ud83c\udfd6\ufe0f Pantai', 'city': '\ud83c\udfd9\ufe0f Kota',
+            'town': '\ud83c\udfe0 Kota Kecil', 'village': '\ud83c\udfe1 Desa',
+            'administrative': '\ud83d\udccd Wilayah',
+        };
+        for (const [key, val] of Object.entries(map)) {
+            if (type && type.toLowerCase().includes(key)) return val;
+        }
+        return '\ud83d\udccd Lokasi';
+    };
+
+    list.innerHTML = results.map((r, i) => {
+        const shortAddr = r.display_name.split(',').slice(0, 3).join(', ');
+        const lat = parseFloat(r.lat).toFixed(4);
+        const lon = parseFloat(r.lon).toFixed(4);
+        const type = typeLabel(r.type || r.class);
+        return `
+            <div class="multi-result-item" tabindex="0" role="button"
+                 onclick="selectMultiResult(${i})" onkeydown="if(event.key==='Enter')selectMultiResult(${i})">
+                <div class="multi-result-type">${type}</div>
+                <div class="multi-result-name">${r.name || shortAddr}</div>
+                <div class="multi-result-addr">${shortAddr}</div>
+                <div class="multi-result-coords">${lat}, ${lon}</div>
+            </div>
+        `;
+    }).join('');
+
+    // Simpan hasil di dataset untuk referensi saat dipilih
+    list.dataset.results = JSON.stringify(results);
+    list.style.display = 'block';
+}
+
+function selectMultiResult(index) {
+    const list = document.getElementById('multiResultList');
+    if (!list) return;
+    const results = JSON.parse(list.dataset.results || '[]');
+    const location = results[index];
+    if (!location) return;
+
+    hideMultiResultList();
+    displaySearchResult(location);
+    addSearchMarkerToMap(location);
+}
+
+function hideMultiResultList() {
+    const list = document.getElementById('multiResultList');
+    if (list) list.style.display = 'none';
+}
+
 function showSearchError(message, type = 'error') {
+    // Fitur 1: gunakan toast untuk pesan sukses, error tetap pakai inline
+    if (type === 'success') {
+        showToast(message, 'success');
+        return;
+    }
     const errorDiv = document.getElementById('searchError');
+    if (!errorDiv) return;
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
-
-    if (type === 'success') {
-        errorDiv.style.background = '#e7f5e7';
-        errorDiv.style.borderLeftColor = '#51cf66';
-        errorDiv.style.color = '#2d7a2d';
-    } else {
-        errorDiv.style.background = '#ffe0e0';
-        errorDiv.style.borderLeftColor = '#ff6b6b';
-        errorDiv.style.color = '#c92a2a';
-    }
-
-    // Auto-hide success messages after 3 seconds
-    if (type === 'success') {
-        setTimeout(() => hideSearchError(), 3000);
-    }
+    errorDiv.style.background = '#ffe0e0';
+    errorDiv.style.borderLeftColor = '#ff6b6b';
+    errorDiv.style.color = '#c92a2a';
 }
 
 function hideSearchError() {
@@ -785,6 +987,11 @@ function openEditModal(id, nama_lokasi, latitude, longitude) {
     if (document.getElementById('editDeskripsi')) {
         document.getElementById('editDeskripsi').value = currentLocation.deskripsi || '';
     }
+    // Set kategori dropdown
+    const editKategoriEl = document.getElementById('editKategori');
+    if (editKategoriEl) {
+        editKategoriEl.value = currentLocation.kategori || 'Lainnya';
+    }
     document.getElementById('enableCoordEdit').checked = false;
     setCoordinateEditingEnabled(false);
     document.getElementById('editModal').style.display = 'flex';
@@ -823,7 +1030,8 @@ function handleEditSubmit(e) {
     }
 
     const editDeskripsi = document.getElementById('editDeskripsi') ? document.getElementById('editDeskripsi').value.trim() : '';
-    updateLokasi(currentEditingId, nama_lokasi, latitude, longitude, editDeskripsi);
+    const editKategori  = document.getElementById('editKategori')  ? document.getElementById('editKategori').value  : 'Lainnya';
+    updateLokasi(currentEditingId, nama_lokasi, latitude, longitude, editDeskripsi, editKategori);
     closeEditModal();
 }
 
@@ -839,3 +1047,296 @@ function setCoordinateEditingEnabled(enabled) {
         document.getElementById('editLongitude').style.opacity = '0.5';
     }
 }
+
+// ==================== Dark Mode (Fitur 12) ====================
+function initDarkMode() {
+    const saved = localStorage.getItem('theme');
+    const isDark = saved === 'dark';
+    applyTheme(isDark);
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyTheme(!isDark);
+    localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+}
+
+function applyTheme(isDark) {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    const icon = document.querySelector('.theme-icon');
+    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+
+    // Update Leaflet tile layer for dark mode (switch to dark tiles)
+    if (map) {
+        // Hapus tile layer lama
+        map.eachLayer(layer => {
+            if (layer instanceof L.TileLayer) map.removeLayer(layer);
+        });
+
+        if (isDark) {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                maxZoom: 19, minZoom: 2
+            }).addTo(map);
+        } else {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                maxZoom: 19, minZoom: 2
+            }).addTo(map);
+        }
+    }
+
+    console.log(`✓ Tema diganti ke: ${isDark ? 'dark' : 'light'}`);
+}
+
+// ==================== Toast Notification (Fitur 1) ====================
+
+function showToast(titleOrMessage, messageOrType = 'success', type) {
+    // Support both (message, type) and (title, message, type)
+    let title, msg, toastType;
+    if (type !== undefined) {
+        title      = titleOrMessage;
+        msg        = messageOrType;
+        toastType  = type;
+    } else {
+        title      = null;
+        msg        = titleOrMessage;
+        toastType  = messageOrType;
+    }
+
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item toast-${toastType}`;
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    const icon  = icons[toastType] || 'ℹ️';
+    const titleHtml = title ? `<strong>${title}:</strong> ` : '';
+    toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${titleHtml}${msg}</span>`;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 350);
+    }, 4000);
+}
+
+// ==================== Search History (Fitur 2) ====================
+const HISTORY_KEY = 'lokasi_search_history';
+const MAX_HISTORY = 6;
+
+function initSearchHistory() {
+    const searchInput = document.getElementById('searchInput');
+    const historyEl   = document.getElementById('searchHistoryDropdown');
+    if (!searchInput || !historyEl) return;
+
+    // Tampilkan saat fokus
+    searchInput.addEventListener('focus', () => renderSearchHistory());
+
+    // Tutup saat blur (delay agar klik item bisa terjadi)
+    searchInput.addEventListener('blur', () => {
+        setTimeout(() => hideSearchHistory(), 200);
+    });
+
+    // Filter saat mengetik
+    searchInput.addEventListener('input', () => {
+        if (searchInput.value.trim() === '') renderSearchHistory();
+        else hideSearchHistory();
+    });
+}
+
+function saveSearchHistory(query) {
+    let history = getSearchHistory();
+    history = history.filter(h => h.toLowerCase() !== query.toLowerCase()); // hapus duplikat
+    history.unshift(query);
+    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function getSearchHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+    catch { return []; }
+}
+
+function renderSearchHistory() {
+    const historyEl = document.getElementById('searchHistoryDropdown');
+    if (!historyEl) return;
+    const history = getSearchHistory();
+    if (history.length === 0) { hideSearchHistory(); return; }
+
+    historyEl.innerHTML = `
+        <div class="history-header">
+            <span>🕐 Riwayat Pencarian</span>
+            <button class="history-clear-btn" onclick="clearSearchHistory()">Hapus Semua</button>
+        </div>
+        ${history.map(q => `
+            <div class="history-item" onmousedown="pickHistory('${q.replace(/'/g, "\\'")}')">
+                <span class="history-icon">🕐</span>
+                <span class="history-text">${q}</span>
+            </div>
+        `).join('')}
+    `;
+    historyEl.style.display = 'block';
+}
+
+function hideSearchHistory() {
+    const historyEl = document.getElementById('searchHistoryDropdown');
+    if (historyEl) historyEl.style.display = 'none';
+}
+
+function pickHistory(query) {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = query;
+        hideSearchHistory();
+        document.getElementById('searchForm').dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+}
+
+function clearSearchHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    hideSearchHistory();
+    showToast('Riwayat pencarian dihapus', 'info');
+}
+
+// ==================== Profile Management ====================
+function openProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function switchProfileTab(tab) {
+    const btnInfo = document.getElementById('tabInfoBtn');
+    const btnPass = document.getElementById('tabPassBtn');
+    const formInfo = document.getElementById('profileInfoForm');
+    const formPass = document.getElementById('profilePassForm');
+
+    if (tab === 'info') {
+        btnInfo.classList.add('active');
+        btnPass.classList.remove('active');
+        formInfo.style.display = 'block';
+        formPass.style.display = 'none';
+    } else {
+        btnPass.classList.add('active');
+        btnInfo.classList.remove('active');
+        formPass.style.display = 'block';
+        formInfo.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const infoForm = document.getElementById('profileInfoForm');
+    if (infoForm) {
+        infoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = infoForm.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        name: document.getElementById('profileName').value,
+                        email: document.getElementById('profileEmail').value
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('Sukses', 'Profil berhasil diperbarui.', 'success');
+                    // Update UI name
+                    document.querySelectorAll('.user-name').forEach(el => el.innerText = data.user.name);
+                    document.querySelectorAll('.user-avatar').forEach(el => el.innerText = data.user.name.substring(0,1).toUpperCase());
+                    closeProfileModal();
+                } else {
+                    showToast('Gagal', data.message || 'Gagal memperbarui profil.', 'error');
+                }
+            } catch (err) {
+                showToast('Error', 'Terjadi kesalahan jaringan.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+
+    const passForm = document.getElementById('profilePassForm');
+    if (passForm) {
+        passForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = passForm.querySelector('button');
+            const originalText = btn.innerText;
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const newPasswordConfirm = document.getElementById('newPasswordConfirm').value;
+
+            if (newPassword !== newPasswordConfirm) {
+                showToast('Gagal', 'Konfirmasi password baru tidak cocok.', 'warning');
+                return;
+            }
+
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/profile/password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        password: newPassword,
+                        password_confirmation: newPasswordConfirm
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('Sukses', 'Password berhasil diubah.', 'success');
+                    passForm.reset();
+                    closeProfileModal();
+                } else {
+                    // Tampilkan pesan error spesifik dari Laravel
+                    let errMsg = data.message || 'Terjadi kesalahan.';
+                    if (data.errors) {
+                        const firstKey = Object.keys(data.errors)[0];
+                        errMsg = data.errors[firstKey][0];
+                    }
+                    // Terjemahkan pesan umum Laravel ke Bahasa Indonesia
+                    errMsg = errMsg
+                        .replace('The password field must be at least 6 characters.', 'Password baru minimal 6 karakter.')
+                        .replace('The current password is incorrect.', 'Password saat ini salah.')
+                        .replace('The password field confirmation does not match.', 'Konfirmasi password tidak cocok.');
+                    showToast('Gagal', errMsg, 'error');
+                }
+            } catch (err) {
+                showToast('Error', 'Terjadi kesalahan jaringan.', 'error');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+});

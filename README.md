@@ -66,7 +66,8 @@ Sistem Pencarian & Simpan Lokasi Wisata adalah aplikasi web berbasis Laravel yan
 - Simpan lokasi beserta deskripsi pribadi
 - Edit nama, koordinat, dan deskripsi lokasi
 - Hapus lokasi satu per satu atau semua sekaligus
-- Lokasi bersifat **privat** — hanya bisa dilihat oleh pemiliknya
+- 🔗 **Berbagi Lokasi (Share Link)**: Bagikan tautan publik lokasi Anda agar bisa dilihat teman tanpa perlu login
+- 🗺️ **Integrasi Google Maps**: Satu klik untuk membuka koordinat di aplikasi Google Maps asli
 - Export semua lokasi milik user ke file **CSV** (dengan BOM UTF-8 untuk kompatibilitas Excel)
 
 ### 🛡️ Panel Admin (Filament — `/admin`)

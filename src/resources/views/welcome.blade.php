@@ -5,11 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="auth-status" content="{{ Auth::check() ? 'authenticated' : 'guest' }}">
-    <title>Sistem Pencarian & Simpan Lokasi Wisata</title>
+    <title>Sistem Pencarian &amp; Simpan Lokasi Wisata</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <style>
+        .tab-btn { background:none; border:none; padding:10px 15px; cursor:pointer; color:var(--t4); font-weight:600; border-bottom:2px solid transparent; transition:all .18s; }
+        .tab-btn.active { color:var(--blue-btn); border-bottom-color:var(--blue-btn); }
+        .tab-btn:hover { color:var(--blue-btn); }
+    </style>
+    <script>
+        // Terapkan dark mode sebelum render untuk cegah flash
+        (function() {
+            if (localStorage.getItem('theme') === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 <body>
     <a class="skip-link" href="#main-content">Lewati ke konten utama</a>
@@ -26,11 +41,14 @@
                     </div>
                 </div>
                 <div class="header-auth">
+                    <button id="themeToggleBtn" class="btn-theme-toggle" title="Toggle Dark Mode" aria-label="Toggle dark mode">
+                        <span class="theme-icon">🌙</span>
+                    </button>
                     @auth
-                        <div class="user-badge">
+                        <button class="user-badge" onclick="openProfileModal()">
                             <div class="user-avatar">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</div>
                             <span class="user-name">{{ Auth::user()->name }}</span>
-                        </div>
+                        </button>
                         <form method="POST" action="{{ route('logout') }}" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-outline-white">Keluar</button>
@@ -42,6 +60,24 @@
                 </div>
             </div>
         </header>
+
+        @guest
+        {{-- Hero Banner untuk tamu (belum login) --}}
+        <div class="guest-hero" id="guestHero">
+            <div class="guest-hero-bg"></div>
+            <div class="guest-hero-content">
+                <div class="guest-hero-badge">✨ Sistem Pencarian Lokasi Wisata Indonesia</div>
+                <h2 class="guest-hero-title">Temukan & Simpan Lokasi<br>Wisata Impian Anda</h2>
+                <p class="guest-hero-sub">Cari, simpan, dan bagikan ribuan destinasi wisata di seluruh Nusantara. Gratis selamanya.</p>
+                <div class="guest-hero-actions">
+                    <a href="/register" class="hero-btn-primary">🚀 Daftar Gratis</a>
+                    <a href="/login" class="hero-btn-secondary">Masuk →</a>
+                </div>
+                <p class="guest-hero-hint">💡 Anda bisa mencoba pencarian tanpa login terlebih dahulu</p>
+            </div>
+            <button class="hero-close-btn" onclick="document.getElementById('guestHero').style.display='none'" aria-label="Tutup banner">×</button>
+        </div>
+        @endguest
 
         <!-- Main Content -->
         <main id="main-content" class="main-content" role="main">
@@ -66,6 +102,9 @@
                         </button>
                     </form>
 
+                    <!-- Riwayat Pencarian (Fitur 2) -->
+                    <div id="searchHistoryDropdown" class="search-history-dropdown" style="display:none;"></div>
+
                     <!-- Quick chips -->
                     <div class="quick-search" role="group" aria-label="Pencarian cepat">
                         <span class="quick-label">Coba:</span>
@@ -76,6 +115,9 @@
                     </div>
 
                     <!-- Results / Error / Loading -->
+                    <!-- Multi-result dropdown -->
+                    <div id="multiResultList" class="multi-result-list" style="display:none;"></div>
+
                     <div id="searchResult" class="search-result" style="display:none;">
                         <div id="resultContent"></div>
                     </div>
@@ -90,6 +132,27 @@
                     <div class="section-title-row">
                         <h2>📌 Lokasi Tersimpan</h2>
                         <span id="savedCountBadge" class="count-badge">0</span>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar">
+                        <input
+                            type="text"
+                            id="filterInput"
+                            class="filter-input"
+                            placeholder="🔍 Cari dari daftar..."
+                            autocomplete="off"
+                        >
+                        <select id="filterKategori" class="filter-select">
+                            <option value="">Semua Kategori</option>
+                            <option value="Pantai">🏖️ Pantai</option>
+                            <option value="Gunung">🏔️ Gunung</option>
+                            <option value="Kota">🏙️ Kota</option>
+                            <option value="Budaya">🏛️ Budaya</option>
+                            <option value="Kuliner">🍜 Kuliner</option>
+                            <option value="Alam">🌿 Alam</option>
+                            <option value="Lainnya">📍 Lainnya</option>
+                        </select>
                     </div>
 
                     <div id="locationsList" class="locations-list">
@@ -107,7 +170,7 @@
                             🗑️ Hapus Semua
                         </button>
                         <button id="exportCsvBtn" type="button" class="btn btn-secondary btn-sm">
-                            📥 Export CSV
+                            📊 Export Excel
                         </button>
                     </div>
                 </section>
@@ -164,6 +227,18 @@
                         <label for="editDeskripsi">Deskripsi <span style="font-weight:400;color:var(--t4);">(opsional)</span></label>
                         <textarea id="editDeskripsi" rows="3" placeholder="Tambahkan catatan singkat tentang lokasi ini..."></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="editKategori">Kategori</label>
+                        <select id="editKategori" class="filter-select" style="width:100%;padding:8px 12px;">
+                            <option value="Pantai">🏖️ Pantai</option>
+                            <option value="Gunung">🏔️ Gunung</option>
+                            <option value="Kota">🏙️ Kota</option>
+                            <option value="Budaya">🏛️ Budaya</option>
+                            <option value="Kuliner">🍜 Kuliner</option>
+                            <option value="Alam">🌿 Alam</option>
+                            <option value="Lainnya" selected>📍 Lainnya</option>
+                        </select>
+                    </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Batal</button>
                         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
@@ -172,9 +247,57 @@
             </div>
         </div>
 
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="profileModalTitle">Pengaturan Akun</h2>
+                    <button type="button" class="modal-close" onclick="closeProfileModal()" aria-label="Tutup">&times;</button>
+                </div>
+                
+                <div style="display:flex; border-bottom:1px solid var(--border); margin-bottom:15px;">
+                    <button id="tabInfoBtn" class="tab-btn active" onclick="switchProfileTab('info')">Profil Utama</button>
+                    <button id="tabPassBtn" class="tab-btn" onclick="switchProfileTab('password')">Ganti Password</button>
+                </div>
+
+                <form id="profileInfoForm" class="modal-form">
+                    <div class="form-group">
+                        <label for="profileName">Nama Lengkap</label>
+                        <input type="text" id="profileName" value="{{ Auth::check() ? Auth::user()->name : '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileEmail">Alamat Email</label>
+                        <input type="email" id="profileEmail" value="{{ Auth::check() ? Auth::user()->email : '' }}" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary" style="width:100%">Simpan Profil</button>
+                    </div>
+                </form>
+
+                <form id="profilePassForm" class="modal-form" style="display:none;">
+                    <div class="form-group">
+                        <label for="currentPassword">Password Saat Ini</label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Password Baru (min. 6 karakter)</label>
+                        <input type="password" id="newPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPasswordConfirm">Konfirmasi Password Baru</label>
+                        <input type="password" id="newPasswordConfirm" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary" style="width:100%">Ganti Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div><!-- /.container -->
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="{{ asset('js/script.js') }}"></script>
 </body>
 </html>

@@ -18,11 +18,11 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = 'Data Management';
 
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?string $navigationLabel = 'Pengguna';
 
-    protected static ?int $navigationSort = -2;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
