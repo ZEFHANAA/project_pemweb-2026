@@ -73,7 +73,6 @@ class UserResource extends Resource
                             ->password()
                             ->confirmed()
                             ->columnSpan(1)
-                            ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                             ->dehydrated(fn ($state) => filled($state))
                             ->required(fn (string $context): bool => $context === 'create'),
                         Forms\Components\TextInput::make('password_confirmation')

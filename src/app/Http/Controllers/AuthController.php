@@ -18,12 +18,17 @@ class AuthController extends Controller
     // Handle login
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required|string|min:8',
+        ], [
+            'email.required'    => 'Alamat email wajib diisi.',
+            'email.email'       => 'Format email tidak valid.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min'      => 'Password minimal 8 karakter.',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
             return redirect('/');
         }
@@ -42,16 +47,25 @@ class AuthController extends Controller
     // Handle register
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email:dns|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+        $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email:dns|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'name.required'      => 'Nama lengkap wajib diisi.',
+            'name.max'           => 'Nama maksimal 255 karakter.',
+            'email.required'     => 'Alamat email wajib diisi.',
+            'email.email'        => 'Format email tidak valid.',
+            'email.unique'       => 'Email ini sudah terdaftar. Silakan gunakan email lain.',
+            'password.required'  => 'Password wajib diisi.',
+            'password.min'       => 'Password minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
         $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'password' => Hash::make($request->password),
         ]);
 
         Auth::login($user);

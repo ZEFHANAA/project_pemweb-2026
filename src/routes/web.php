@@ -1,12 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\ProfileController;
 use Livewire\Livewire;
-use Illuminate\Support\Facades\Response;
 
 /* NOTE: Do Not Remove
 / Livewire asset handling if using sub folder in domain
@@ -38,6 +36,13 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// Password Reset Routes
+Route::get('/forgot-password', [\App\Http\Controllers\PasswordResetController::class, 'showLinkRequestForm'])->name('password.request')->middleware('guest');
+Route::post('/forgot-password', [\App\Http\Controllers\PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email')->middleware(['guest', 'throttle:3,1']);
+Route::get('/reset-password/{token}', [\App\Http\Controllers\PasswordResetController::class, 'showResetForm'])->name('password.reset')->middleware('guest');
+Route::post('/reset-password', [\App\Http\Controllers\PasswordResetController::class, 'reset'])->name('password.update')->middleware(['guest', 'throttle:3,1']);
+
+
 // API Lokasi routes — export harus di atas agar tidak ditangkap oleh {lokasi}
 Route::get('/api/lokasi/export', [LokasiController::class, 'export']);
 Route::get('/api/lokasi',          [LokasiController::class, 'index']);
@@ -49,3 +54,5 @@ Route::delete('/api/lokasi/{lokasi}', [LokasiController::class, 'destroy']);
 // API Profile routes
 Route::put('/api/profile', [ProfileController::class, 'update'])->middleware('auth');
 Route::put('/api/profile/password', [ProfileController::class, 'updatePassword'])->middleware('auth');
+
+

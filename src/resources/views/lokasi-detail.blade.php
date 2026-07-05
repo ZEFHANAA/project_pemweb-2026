@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $lokasi->nama_lokasi }} — Lokasi Wisata</title>
-    <meta name="description" content="{{ $lokasi->deskripsi ?: 'Lihat detail lokasi wisata '.$lokasi->nama_lokasi.' di peta interaktif.' }}">
+    <meta name="description" content="{{ $lokasi->deskripsi ?: 'Lihat detail lokasi '.$lokasi->nama_lokasi.' di peta interaktif.' }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,166 +13,354 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background: #f0f2f5;
+            font-family: 'Inter', sans-serif;
+            background: #0d1117;
             color: #111827;
             min-height: 100vh;
         }
 
-        /* ---- HEADER ---- */
+        /* ===== HEADER ===== */
         .header {
-            background: #1e3a8a;
-            padding: 0 24px;
-            height: 60px;
-            display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 56px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(255,255,255,.08);
         }
+
         .header-brand {
-            display: flex; align-items: center; gap: 10px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
             text-decoration: none;
         }
+
         .header-logo {
-            width: 34px; height: 34px; border-radius: 8px;
-            background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3);
-            display: flex; align-items: center; justify-content: center; font-size: 17px;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: rgba(37,99,235,.3);
+            border: 1px solid rgba(37,99,235,.4);
+            display: flex; align-items: center; justify-content: center;
         }
+
         .header-name {
-            font-size: 15px; font-weight: 700; color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255,255,255,.9);
+            letter-spacing: -.01em;
         }
+
         .btn-back {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 7px 16px; border-radius: 8px;
-            background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
-            color: #fff; font-size: 13px; font-weight: 600;
-            text-decoration: none; transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 7px;
+            background: rgba(255,255,255,.1);
+            border: 1px solid rgba(255,255,255,.15);
+            color: rgba(255,255,255,.8);
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all .2s;
             font-family: 'Inter', sans-serif;
         }
-        .btn-back:hover { background: rgba(255,255,255,.25); }
+        .btn-back:hover {
+            background: rgba(255,255,255,.18);
+            color: #fff;
+        }
 
-        /* ---- HERO ---- */
+        /* ===== HERO ===== */
         .hero {
             position: relative;
-            height: 280px;
-            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+            height: 300px;
+            margin-top: 56px;
             overflow: hidden;
-        }
-        .hero-thumbnail {
-            width: 100%; height: 100%;
-            object-fit: cover; opacity: .55;
-        }
-        .hero-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(to bottom, rgba(15,23,42,.2) 0%, rgba(15,23,42,.7) 100%);
-            display: flex; flex-direction: column;
-            justify-content: flex-end; padding: 28px 32px;
-        }
-        .hero-kategori {
-            display: inline-flex; align-items: center;
-            padding: 4px 12px; border-radius: 999px;
-            background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3);
-            color: #fff; font-size: 12px; font-weight: 700;
-            letter-spacing: .04em; margin-bottom: 10px;
-            width: fit-content;
-        }
-        .hero-title {
-            font-size: clamp(24px, 5vw, 36px);
-            font-weight: 800; color: #fff;
-            text-shadow: 0 2px 8px rgba(0,0,0,.4);
-        }
-        .hero-coords {
-            font-size: 13px; color: rgba(255,255,255,.75);
-            margin-top: 6px; font-family: monospace;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
         }
 
-        /* ---- MAIN LAYOUT ---- */
+        .hero-thumbnail {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: .45;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom,
+                rgba(13,17,23,.1) 0%,
+                rgba(13,17,23,.65) 100%
+            );
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 32px 40px;
+        }
+
+        .hero-kategori {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.25);
+            color: rgba(255,255,255,.9);
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            margin-bottom: 10px;
+            width: fit-content;
+            backdrop-filter: blur(8px);
+        }
+
+        .hero-title {
+            font-size: clamp(24px, 4vw, 36px);
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -.5px;
+            text-shadow: 0 2px 12px rgba(0,0,0,.3);
+            line-height: 1.15;
+        }
+
+        .hero-coords {
+            font-size: 12.5px;
+            color: rgba(255,255,255,.55);
+            margin-top: 7px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            letter-spacing: .02em;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .page-bg {
+            background: #f3f4f6;
+            padding: 28px 16px 60px;
+        }
+
         .main {
-            max-width: 900px;
+            max-width: 920px;
             margin: 0 auto;
-            padding: 28px 16px 40px;
             display: grid;
             grid-template-columns: 1fr 300px;
             gap: 20px;
         }
-        @media (max-width: 680px) {
-            .main { grid-template-columns: 1fr; }
-            .hero { height: 200px; }
-            .hero-overlay { padding: 20px; }
-        }
 
-        /* ---- MAP ---- */
+        /* ===== CARDS ===== */
         .card {
-            background: #fff; border-radius: 12px;
-            border: 1px solid #e5e7eb; box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 16px rgba(0,0,0,.07);
             overflow: hidden;
         }
-        .card-header {
-            padding: 14px 18px;
-            border-bottom: 1px solid #f3f4f6;
-            font-size: 13px; font-weight: 700; color: #374151;
-            display: flex; align-items: center; gap: 6px;
-        }
-        #map { width: 100%; height: 320px; }
 
-        /* ---- SIDE INFO ---- */
-        .info-card { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 2px 12px rgba(0,0,0,.07); overflow: hidden; }
-        .info-header { padding: 14px 18px; border-bottom: 1px solid #f3f4f6; font-size: 13px; font-weight: 700; color: #374151; }
-        .info-list { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+        .card-header {
+            padding: 13px 18px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        #map { width: 100%; height: 340px; }
+
+        /* ===== SIDEBAR ===== */
+        .info-card {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 16px rgba(0,0,0,.07);
+            overflow: hidden;
+        }
+
+        .info-header {
+            padding: 13px 18px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        .info-list {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
         .info-row { display: flex; flex-direction: column; gap: 3px; }
-        .info-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; }
-        .info-value { font-size: 13.5px; color: #111827; font-weight: 500; }
-        .info-value.mono { font-family: monospace; font-size: 12.5px; }
-        .info-desc { font-size: 13px; color: #374151; line-height: 1.7; }
+
+        .info-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .info-value {
+            font-size: 13.5px;
+            color: #111827;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .info-value.mono {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            color: #374151;
+            background: #f9fafb;
+            padding: 4px 8px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            width: fit-content;
+        }
+
+        .info-desc {
+            font-size: 13px;
+            color: #374151;
+            line-height: 1.75;
+        }
 
         .kategori-pill {
-            display: inline-flex; align-items: center;
-            padding: 4px 12px; border-radius: 999px;
-            background: #eff6ff; color: #1d4ed8;
-            font-size: 12px; font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 11px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
             border: 1px solid #bfdbfe;
         }
 
-        /* ---- ACTIONS ---- */
-        .action-section { display: flex; flex-direction: column; gap: 10px; padding: 0 18px 18px; }
+        /* ===== ACTIONS ===== */
+        .action-section {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            padding: 0 18px 18px;
+        }
+
         .btn-action {
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 11px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600;
-            text-decoration: none; transition: all .2s; font-family: 'Inter', sans-serif;
-            cursor: pointer; border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 11px 16px;
+            border-radius: 9px;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none;
+            transition: all .2s;
+            cursor: pointer;
+            border: 1.5px solid;
         }
-        .btn-gmaps-full { background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; }
-        .btn-gmaps-full:hover { background: #16a34a; color: #fff; }
-        .btn-share { background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; width: 100%; }
-        .btn-share:hover { background: #1d4ed8; color: #fff; }
 
-        /* ---- FOOTER ---- */
+        .btn-gmaps-full {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #bbf7d0;
+        }
+        .btn-gmaps-full:hover {
+            background: #16a34a;
+            color: #fff;
+            border-color: #16a34a;
+        }
+
+        .btn-share {
+            background: #eff6ff;
+            color: #2563eb;
+            border-color: #bfdbfe;
+            width: 100%;
+        }
+        .btn-share:hover {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        /* ===== FOOTER ===== */
         .footer {
-            background: #1e3a8a; color: rgba(255,255,255,.5);
-            text-align: center; padding: 14px; font-size: 12px; margin-top: 20px;
+            background: #0d1117;
+            color: rgba(255,255,255,.3);
+            text-align: center;
+            padding: 16px;
+            font-size: 12px;
         }
 
-        /* ---- COPY TOAST ---- */
+        /* ===== TOAST ===== */
         #copyToast {
-            position: fixed; bottom: 28px; right: 28px;
-            background: #1e293b; color: #fff;
-            padding: 12px 20px; border-radius: 10px;
-            font-size: 13px; font-weight: 600;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: rgba(255,255,255,.9);
+            padding: 11px 18px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
             box-shadow: 0 8px 30px rgba(0,0,0,.3);
-            opacity: 0; transform: translateY(12px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(10px);
             transition: all .3s cubic-bezier(.34,1.56,.64,1);
-            pointer-events: none; z-index: 999;
+            pointer-events: none;
+            z-index: 999;
+            border: 1px solid rgba(255,255,255,.08);
         }
         #copyToast.show { opacity: 1; transform: translateY(0); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 700px) {
+            .main { grid-template-columns: 1fr; }
+            .hero { height: 220px; }
+            .hero-overlay { padding: 20px 24px; }
+            #map { height: 260px; }
+        }
     </style>
 </head>
 <body>
 
     <header class="header">
         <a href="/" class="header-brand">
-            <div class="header-logo">🗺️</div>
+            <div class="header-logo">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                    <line x1="9" y1="3" x2="9" y2="18"/>
+                    <line x1="15" y1="6" x2="15" y2="21"/>
+                </svg>
+            </div>
             <span class="header-name">Lokasi Wisata</span>
         </a>
-        <a href="/" class="btn-back">← Kembali ke Peta</a>
+        <a href="/" class="btn-back">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Kembali
+        </a>
     </header>
 
     {{-- HERO --}}
@@ -183,89 +371,128 @@
         <div class="hero-overlay">
             <span class="hero-kategori">{{ $lokasi->kategori ?? 'Lokasi' }}</span>
             <h1 class="hero-title">{{ $lokasi->nama_lokasi }}</h1>
-            <p class="hero-coords">{{ number_format($lokasi->latitude, 4) }}, {{ number_format($lokasi->longitude, 4) }}</p>
+            <p class="hero-coords">{{ number_format($lokasi->latitude, 5) }}, {{ number_format($lokasi->longitude, 5) }}</p>
         </div>
     </section>
 
-    {{-- MAIN CONTENT --}}
-    <main class="main">
+    {{-- CONTENT --}}
+    <div class="page-bg">
+        <main class="main">
 
-        {{-- MAP --}}
-        <div>
-            <div class="card">
-                <div class="card-header">🗺️ Lokasi di Peta</div>
-                <div id="map"></div>
-            </div>
-        </div>
-
-        {{-- SIDEBAR --}}
-        <div style="display:flex;flex-direction:column;gap:16px;">
-
-            <div class="info-card">
-                <div class="info-header">📋 Informasi</div>
-                <div class="info-list">
-                    <div class="info-row">
-                        <span class="info-label">Nama Lokasi</span>
-                        <span class="info-value">{{ $lokasi->nama_lokasi }}</span>
+            {{-- MAP --}}
+            <div>
+                <div class="card">
+                    <div class="card-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                            <line x1="9" y1="3" x2="9" y2="18"/>
+                            <line x1="15" y1="6" x2="15" y2="21"/>
+                        </svg>
+                        Lokasi di Peta
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Kategori</span>
-                        <span class="kategori-pill">{{ $lokasi->kategori ?? 'Lainnya' }}</span>
-                    </div>
-                    @if($lokasi->deskripsi)
-                    <div class="info-row">
-                        <span class="info-label">Deskripsi</span>
-                        <span class="info-desc">{{ $lokasi->deskripsi }}</span>
-                    </div>
-                    @endif
-                    <div class="info-row">
-                        <span class="info-label">Koordinat</span>
-                        <span class="info-value mono">{{ $lokasi->latitude }}, {{ $lokasi->longitude }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Disimpan</span>
-                        <span class="info-value">{{ $lokasi->created_at->format('d M Y') }}</span>
-                    </div>
-                </div>
-
-                <div class="action-section">
-                    <a class="btn-action btn-gmaps-full"
-                       href="https://www.google.com/maps/search/?api=1&query={{ $lokasi->latitude }},{{ $lokasi->longitude }}"
-                       target="_blank" rel="noopener">
-                        🗺️ Buka di Google Maps
-                    </a>
-                    <button class="btn-action btn-share" onclick="copyShareLink()">
-                        🔗 Salin Link Berbagi
-                    </button>
+                    <div id="map"></div>
                 </div>
             </div>
 
-        </div>
-    </main>
+            {{-- SIDEBAR --}}
+            <div style="display:flex;flex-direction:column;gap:16px;">
+                <div class="info-card">
+                    <div class="info-header">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        Informasi
+                    </div>
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Nama Lokasi</span>
+                            <span class="info-value">{{ $lokasi->nama_lokasi }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Kategori</span>
+                            <span class="kategori-pill">{{ $lokasi->kategori ?? 'Lainnya' }}</span>
+                        </div>
+                        @if($lokasi->deskripsi)
+                        <div class="info-row">
+                            <span class="info-label">Deskripsi</span>
+                            <span class="info-desc">{{ $lokasi->deskripsi }}</span>
+                        </div>
+                        @endif
+                        <div class="info-row">
+                            <span class="info-label">Koordinat</span>
+                            <span class="info-value mono">{{ $lokasi->latitude }}, {{ $lokasi->longitude }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Disimpan</span>
+                            <span class="info-value">{{ $lokasi->created_at->format('d M Y') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="action-section">
+                        <a class="btn-action btn-gmaps-full"
+                           href="https://www.google.com/maps/search/?api=1&query={{ $lokasi->latitude }},{{ $lokasi->longitude }}"
+                           target="_blank" rel="noopener">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            Buka di Google Maps
+                        </a>
+                        <button class="btn-action btn-share" onclick="copyShareLink()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/>
+                                <circle cx="6" cy="12" r="3"/>
+                                <circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                            Salin Link
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
 
     <footer class="footer">
-        © {{ date('Y') }} Sistem Pencarian &amp; Simpan Lokasi Wisata
+        © {{ date('Y') }} Sistem Pencarian & Simpan Lokasi Wisata
     </footer>
 
-    <div id="copyToast">✓ Link berhasil disalin!</div>
+    <div id="copyToast">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Link berhasil disalin
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const LAT = {{ $lokasi->latitude }};
-        const LNG = {{ $lokasi->longitude }};
+        const LAT  = {{ $lokasi->latitude }};
+        const LNG  = {{ $lokasi->longitude }};
         const NAME = @json($lokasi->nama_lokasi);
+        const KATEGORI = @json($lokasi->kategori);
+
+        const colors = {
+            'Pantai': 'blue', 'Gunung': 'green', 'Kota': 'violet',
+            'Alam': 'green', 'Budaya': 'gold', 'Kuliner': 'orange', 'Lainnya': 'red'
+        };
+        const markerColor = colors[KATEGORI] || 'red';
 
         const map = L.map('map', { attributionControl: false }).setView([LAT, LNG], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
         const marker = L.marker([LAT, LNG], {
             icon: L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                iconSize: [25, 41], iconAnchor: [12, 41],
+                popupAnchor: [1, -34], shadowSize: [41, 41]
             })
         }).addTo(map);
-        marker.bindPopup(`<strong>${NAME}</strong>`).openPopup();
+        marker.bindPopup(`<strong style="font-family:Inter,sans-serif;font-size:13px;">${NAME}</strong>`).openPopup();
 
         function copyShareLink() {
             const url = window.location.href;
@@ -285,7 +512,7 @@
         function showToast() {
             const t = document.getElementById('copyToast');
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2500);
+            setTimeout(() => t.classList.remove('show'), 2800);
         }
     </script>
 </body>

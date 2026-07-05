@@ -1,230 +1,177 @@
-# 🗺️ Sistem Pencarian & Simpan Lokasi Wisata
+# Sistem Pencarian & Simpan Lokasi Wisata
 
-> Aplikasi web untuk mencari, menyimpan, dan mengelola lokasi wisata favorit berbasis peta interaktif.
+Aplikasi web untuk mencari, menyimpan, dan mengelola lokasi wisata favorit berbasis peta interaktif.
+
+**Pengembang:** Zefhana Ananda (20240801047)  
+**Mata Kuliah:** Pemrograman Web — 2026
+
+🌍 **Live Demo:** [https://petawisata.my.id](https://petawisata.my.id)
 
 ---
 
-## 👤 Tentang Pengembang
+## Tentang Aplikasi
 
-| | |
+Aplikasi ini dibuat menggunakan Laravel 12 dengan database MariaDB. Di sisi frontend, peta interaktif ditampilkan menggunakan Leaflet.js dan data pencarian lokasi diambil dari Nominatim API (OpenStreetMap). Seluruh logika frontend ditulis dalam JavaScript tanpa framework tambahan.
+
+Untuk panel admin, digunakan Filament v3 yang bisa diakses di `/admin`. Panel ini hanya bisa diakses oleh user dengan role `super_admin`. Manajemen role dan permission menggunakan Spatie Permission + Filament Shield.
+
+Lingkungan pengembangan menggunakan Docker (PHP + Nginx + MariaDB).
+
+---
+
+## Fitur
+
+**Autentikasi**
+- Register, login, logout
+- Edit profil dan ganti password
+- Halaman login & register dengan layout split-screen
+
+**Peta & Pencarian**
+- Peta interaktif dengan tile dari OpenStreetMap
+- Pencarian lokasi via Nominatim API
+- Foto/thumbnail lokasi otomatis diambil dari Wikipedia API
+- Riwayat pencarian tersimpan di browser (bisa dihapus satu per satu)
+- Tombol pencarian cepat (Borobudur, Raja Ampat, Gunung Bromo, Danau Toba)
+- Warna pin/marker di peta berbeda tergantung kategori lokasi
+- Dark Mode / Light Mode dengan preferensi tersimpan di browser
+
+**Manajemen Lokasi**
+- Simpan lokasi beserta deskripsi dan kategori
+- Filter daftar lokasi berdasarkan kategori (Gunung, Pantai, dll)
+- Edit dan hapus lokasi (satuan maupun semua sekaligus)
+- Berbagi lokasi via link publik (bisa dilihat tanpa login)
+- Buka koordinat langsung di Google Maps
+- Export semua lokasi ke file Excel (.xls)
+
+**Panel Admin (Filament — `/admin`)**
+- CRUD user dan lokasi
+- Dashboard dengan statistik (total user, total lokasi, kategori terpopuler, dll)
+- Log aktivitas menggunakan Spatie Activity Log
+- Manajemen role & permission via Filament Shield
+- Edit profil admin
+
+---
+
+## Tech Stack
+
+| Komponen | Teknologi |
 |---|---|
-| **Nama** | Zefhana Ananda |
-| **NIM** | 20240801047 |
-| **Mata Kuliah** | Pemrograman Web |
-| **Tahun** | 2026 |
+| Backend | Laravel 12, PHP 8.2 |
+| Database | MariaDB 10.11 |
+| Frontend | Blade Templating, CSS, JavaScript |
+| Peta | Leaflet.js, OpenStreetMap, Nominatim API |
+| Admin Panel | Filament v3 |
+| Permission | Spatie Permission, Filament Shield |
+| Activity Log | Spatie Activity Log (filament-logger) |
+| Font | Inter (Google Fonts) |
+| Dev Environment | Docker (PHP + Nginx + MariaDB) |
 
 ---
 
-## 📋 Deskripsi Proyek
+## Cara Menjalankan
 
-Sistem Pencarian & Simpan Lokasi Wisata adalah aplikasi web berbasis Laravel yang memungkinkan pengguna untuk:
-
-- 🔍 Mencari lokasi wisata di seluruh Indonesia menggunakan Nominatim API (OpenStreetMap)
-- 📌 Menyimpan lokasi favorit ke dalam database
-- ✏️ Mengedit nama dan deskripsi lokasi tersimpan
-- 🗑️ Menghapus lokasi yang tidak diperlukan
-- 📥 Mengekspor daftar lokasi ke file CSV
-- 🗺️ Melihat lokasi di peta interaktif berbasis Leaflet.js
-
----
-
-## 🛠️ Teknologi yang Digunakan
-
-| Teknologi | Kegunaan |
-|---|---|
-| **Laravel 12** | Backend framework (PHP) |
-| **MariaDB 10.11** | Database penyimpanan lokasi |
-| **Filament v3** | Panel admin (manajemen user, log aktivitas) |
-| **Filament Shield** | Manajemen permission berbasis role di admin |
-| **Spatie Permission** | Sistem role: `super_admin` & `user` |
-| **Spatie Activity Log** | Log aktivitas admin (akses, perubahan data) |
-| **Leaflet.js** | Peta interaktif |
-| **OpenStreetMap** | Tile peta |
-| **Nominatim API** | Geocoding (pencarian lokasi) |
-| **Vanilla JavaScript** | Logika frontend |
-| **Inter (Google Fonts)** | Tipografi |
-| **Docker** | Lingkungan pengembangan |
-
----
-
-## ✨ Fitur Lengkap
-
-### 🔐 Autentikasi
-- Registrasi akun baru dengan validasi password strength
-- Login / Masuk dengan session berbasis web (bukan token API)
-- Logout / Keluar yang aman
-- Halaman login & register dengan desain modern (split-layout)
-
-### 🗺️ Peta & Pencarian
-- Peta interaktif Indonesia dengan OpenStreetMap
-- Pencarian lokasi real-time via Nominatim API
-- Quick-chips untuk pencarian cepat (Monas, Borobudur, Bromo, Danau Toba)
-- Marker pada peta untuk setiap lokasi tersimpan
-- Popup informasi saat marker diklik
-
-### 📁 Manajemen Lokasi
-- Simpan lokasi beserta deskripsi pribadi
-- Edit nama, koordinat, dan deskripsi lokasi
-- Hapus lokasi satu per satu atau semua sekaligus
-- 🔗 **Berbagi Lokasi (Share Link)**: Bagikan tautan publik lokasi Anda agar bisa dilihat teman tanpa perlu login
-- 🗺️ **Integrasi Google Maps**: Satu klik untuk membuka koordinat di aplikasi Google Maps asli
-- Export semua lokasi milik user ke file **CSV** (dengan BOM UTF-8 untuk kompatibilitas Excel)
-
-### 🛡️ Panel Admin (Filament — `/admin`)
-- Manajemen user: tambah, edit, hapus akun pengguna
-- Manajemen role & permission via Filament Shield (`super_admin`, `user`)
-- Widget log aktivitas terbaru (`LatestAccessLogs`)
-- Edit profil admin langsung dari panel
-- Hanya bisa diakses oleh user dengan role `super_admin`
-
-
-## 🚀 Cara Menjalankan
-
-### Prasyarat
-- Docker & Docker Compose terinstal
-- Git
-
-### Langkah Instalasi
+### Pakai Docker (Recommended)
 
 ```bash
-# 1. Clone repository
+# Clone repo
 git clone <url-repository>
 cd project_pemweb
 
-# 2. Jalankan Docker
+# Jalankan container
 docker compose up -d
 
-# 3. Masuk ke container PHP
+# Masuk ke container PHP
 docker exec -it project_pemweb_php bash
 
-# 4. Install dependensi
+# Install dependencies
 composer install
 
-# 5. Setup environment
+# Setup env
 cp .env.example .env
 php artisan key:generate
 
-# 6. Migrasi database
-php artisan migrate
-
-# 7. Seed akun demo (admin + user)
-php artisan db:seed
+# Migrasi + seed data awal
+php artisan migrate:fresh --seed
 ```
 
-### Akses Aplikasi
-- **URL Utama**: `https://project_pemweb.test`
-- **Dashboard Admin (Filament)**: `https://project_pemweb.test/admin`
+Akses di browser: `https://project_pemweb.test`
 
-### Akun Default (setelah `db:seed`)
+### Pakai Laragon / XAMPP
+
+1. Atur koneksi database di file `.env`
+2. Jalankan `composer install`
+3. Jalankan `php artisan key:generate`
+4. Jalankan `php artisan migrate:fresh --seed`
+5. Jalankan `php artisan serve`
+6. Buka `http://127.0.0.1:8000`
+
+### Akun Default
+
 | Role | Email | Password |
 |---|---|---|
-| Super Admin | `admin@admin.com` | `password` |
-| User | `user@admin.com` | `password` |
+| Super Admin | admin@admin.com | password |
+| User | user@admin.com | password |
+
+Akun Super Admin sudah terisi beberapa lokasi wisata dummy untuk keperluan demo.
 
 ---
 
-## 📁 Struktur Proyek
+## Struktur Folder
 
 ```
 project_pemweb/
+├── docker-compose.yml
+├── nginx/                          # Konfigurasi Nginx
+├── php/                            # Dockerfile PHP
 ├── src/
 │   ├── app/
-│   │   ├── Filament/
-│   │   │   ├── Admin/
-│   │   │   │   ├── Resources/
-│   │   │   │   │   └── UserResource.php        # CRUD user di panel admin
-│   │   │   │   └── Widgets/
-│   │   │   │       └── LatestAccessLogs.php    # Widget log aktivitas
-│   │   │   └── Pages/Auth/
-│   │   │       └── EditProfile.php             # Halaman edit profil admin
-│   │   ├── Http/
-│   │   │   └── Controllers/
-│   │   │       ├── AuthController.php          # Login, register, logout
-│   │   │       └── LokasiController.php        # CRUD lokasi + export CSV
-│   │   ├── Models/
-│   │   │   ├── User.php
-│   │   │   └── Lokasi.php
-│   │   └── Providers/
-│   │       └── Filament/
-│   │           └── AdminPanelProvider.php      # Konfigurasi panel admin
+│   │   ├── Filament/Admin/
+│   │   │   ├── Resources/          # CRUD User & Lokasi di panel admin
+│   │   │   └── Widgets/            # Widget statistik dashboard
+│   │   ├── Http/Controllers/
+│   │   │   ├── AuthController.php
+│   │   │   ├── LokasiController.php
+│   │   │   └── ProfileController.php
+│   │   └── Models/
 │   ├── database/
 │   │   ├── migrations/
 │   │   └── seeders/
-│   │       ├── DatabaseSeeder.php
-│   │       ├── RoleSeeder.php                  # Seed role: super_admin, user
-│   │       └── UserSeeder.php                  # Seed akun demo
 │   ├── public/
-│   │   ├── css/
-│   │   │   └── style.css                      # Stylesheet utama
-│   │   └── js/
-│   │       └── script.js                      # Logika frontend
-│   ├── resources/
-│   │   └── views/
-│   │       ├── auth/
-│   │       │   ├── login.blade.php             # Halaman masuk
-│   │       │   └── register.blade.php          # Halaman daftar
-│   │       └── welcome.blade.php               # Halaman utama (peta)
-│   └── routes/
-│       ├── web.php                             # Route utama + API lokasi
-│       └── api.php
+│   │   ├── css/style.css
+│   │   └── js/script.js
+│   ├── resources/views/
+│   │   ├── auth/                   # Login & Register
+│   │   ├── welcome.blade.php       # Halaman utama (peta)
+│   │   └── lokasi-detail.blade.php # Halaman share lokasi publik
+│   └── routes/web.php
 └── README.md
 ```
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
-Semua endpoint menggunakan **web middleware** (session-based) sehingga autentikasi menggunakan cookie session Laravel.
+Semua endpoint lokasi menggunakan session-based auth (cookie), bukan token.
 
-| Method | Endpoint | Deskripsi | Auth |
-|---|---|---|---|
-| `GET` | `/api/lokasi` | Ambil semua lokasi user | ✅ Required |
-| `POST` | `/api/lokasi` | Simpan lokasi baru | ✅ Required |
-| `GET` | `/api/lokasi/{id}` | Detail satu lokasi | ✅ Required |
-| `PUT` | `/api/lokasi/{id}` | Update lokasi | ✅ Required |
-| `DELETE` | `/api/lokasi/{id}` | Hapus lokasi | ✅ Required |
-| `GET` | `/api/lokasi/export` | Export CSV lokasi user | ✅ Required |
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| GET | /api/lokasi | Ambil semua lokasi milik user |
+| POST | /api/lokasi | Simpan lokasi baru |
+| GET | /api/lokasi/{id} | Detail satu lokasi |
+| PUT | /api/lokasi/{id} | Update lokasi |
+| DELETE | /api/lokasi/{id} | Hapus lokasi |
+| GET | /api/lokasi/export | Export Excel (.xls) |
+| PUT | /api/profile | Update profil |
+| PUT | /api/profile/password | Ganti password |
 
-> **Catatan**: Header `X-CSRF-TOKEN` wajib disertakan pada semua request mutasi (POST, PUT, DELETE).
-
----
-
-## 🎨 Desain UI
-
-- **Header**: Biru gelap (`#1e3a8a`) dengan logo, judul, dan tombol Masuk/Daftar
-- **Panel Kiri**: Panel putih berisi form pencarian, chip cepat, dan daftar lokasi tersimpan
-- **Panel Kanan**: Peta interaktif OpenStreetMap yang mengisi sisa area
-- **Font**: Inter (Google Fonts) untuk keterbacaan optimal
-- **Responsive**: Mendukung tampilan mobile dan tablet
+Header `X-CSRF-TOKEN` wajib disertakan di request POST, PUT, dan DELETE.
 
 ---
 
-## 🔒 Keamanan
+## Keamanan
 
-- CSRF Protection pada semua form dan API request
-- Password di-hash menggunakan bcrypt
-- Lokasi terisolasi per user (tidak bisa akses data user lain)
-- Guest mendapat respons kosong `[]` pada endpoint lokasi
-- Export CSV hanya berisi data milik user yang sedang login
-
----
-
-## 📌 Catatan Pengembangan
-
-- Route API lokasi ditempatkan di `web.php` (bukan `api.php`) agar mendapatkan akses session untuk autentikasi berbasis cookie
-- Route `/api/lokasi/export` harus didaftarkan **sebelum** route `{lokasi}` untuk menghindari konflik parameter
-- File CSV yang diekspor menyertakan BOM UTF-8 (`\xEF\xBB\xBF`) agar karakter Indonesia terbaca dengan benar di Microsoft Excel
-
----
-
-## 📸 Tampilan Aplikasi
-
-| Halaman | Deskripsi |
-|---|---|
-| **Beranda** | Peta interaktif + panel pencarian & daftar lokasi |
-| **Masuk** | Form login dengan split-layout modern |
-| **Daftar** | Form registrasi dengan indikator kekuatan password |
-
----
-
-*Dibuat sebagai tugas Pemrograman Web — 2026*
+- CSRF protection di semua form dan API
+- Password di-hash pakai bcrypt
+- Data lokasi terisolasi per user (tidak bisa akses data user lain)
+- Export CSV hanya berisi data milik user yang login
+- Panel admin hanya bisa diakses role `super_admin`

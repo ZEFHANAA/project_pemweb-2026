@@ -4,6 +4,7 @@ services:
     build:
       context: ./php
     container_name: ${COMPOSE_PROJECT_NAME}_php
+    restart: unless-stopped
     # Teruskan variabel PROJECT_NAME ke dalam kontainer
     environment:
       - PROJECT_NAME=${PROJECT_NAME}
@@ -17,6 +18,7 @@ services:
     build:
       context: ./nginx
     container_name: ${COMPOSE_PROJECT_NAME}_nginx
+    restart: unless-stopped
     ports:
       - "443:443"
       - "80:80"

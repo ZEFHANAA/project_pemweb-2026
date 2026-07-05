@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     initDarkMode();    // Fitur 12
     initSearchHistory(); // Fitur 2
+    initMobileToggle();
 });
 
 // ==================== Map Initialization ====================
@@ -50,7 +51,7 @@ function initMap() {
     });
     map.addLayer(markerCluster);
 
-    console.log('✓ Peta berhasil diinisialisasi dengan cluster support');
+
 }
 
 // ==================== Event Listeners ====================
@@ -178,8 +179,12 @@ async function searchLocation(query) {
     // Fitur 7: limit=7 untuk mendapat banyak hasil
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=7&addressdetails=1&countrycodes=id`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`HTTP Error: ${response.status}`);
@@ -189,6 +194,11 @@ async function searchLocation(query) {
         return data;
 
     } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            console.error('API Error: Request timed out after 3 seconds.');
+            throw new Error('Pencarian terlalu lama. Server sedang sibuk.');
+        }
         console.error('API Error:', error);
         throw error;
     }
@@ -262,13 +272,21 @@ function displaySearchResult(location) {
 
 // ==================== Wikipedia Thumbnail ====================
 async function fetchWikipediaThumbnail(query) {
+    const url = `https://id.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=400&origin=*`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     try {
-        const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
-        const res = await fetch(url);
-        if (!res.ok) return;
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json();
-        const imgUrl = data?.thumbnail?.source || data?.originalimage?.source;
-        if (imgUrl) {
+
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+
+        if (pageId !== "-1" && pages[pageId].thumbnail) {
+            const imgUrl = pages[pageId].thumbnail.source;
             const thumbEl = document.getElementById('resultThumbnail');
             const imgEl   = document.getElementById('resultThumbnailImg');
             if (thumbEl && imgEl) {
@@ -317,7 +335,7 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
     const authMeta = document.querySelector('meta[name="auth-status"]');
     const isAuthenticated = authMeta && authMeta.content === 'authenticated';
 
-    console.log(`📌 Auth status meta: "${authMeta?.content}" → isAuthenticated: ${isAuthenticated}`);
+
 
     if (!isAuthenticated) {
         showSearchError('Silakan login terlebih dahulu untuk menyimpan lokasi', 'error');
@@ -403,7 +421,7 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
 
         // Show success message
         showSearchError('✓ Lokasi berhasil disimpan!', 'success');
-        console.log('✓ Lokasi disimpan:', newLocation);
+
     } catch (error) {
         console.error('❌ Error:', error);
         showSearchError('❌ Gagal menyimpan lokasi', 'error');
@@ -425,7 +443,7 @@ async function loadLocations() {
         }
 
         savedLocations = await response.json();
-        console.log(`✓ ${savedLocations.length} lokasi dimuat dari database`);
+
         
         // Check if authenticated based on locations count
         // If we got locations, user is either authenticated (own locations) or guest (all locations)
@@ -536,7 +554,7 @@ function renderLocationsList(filterText = '', filterKat = '') {
 
     locationsList.innerHTML = `<ul class="locations-list-ul">${listHTML}</ul>`;
 
-    console.log(`✓ ${filtered.length}/${savedLocations.length} lokasi ditampilkan`);
+
 }
 
 // ==================== Delete Location ====================
@@ -578,7 +596,7 @@ async function deleteLokasi(id) {
         renderMarkersOnMap();
 
         showSearchError('✓ Lokasi berhasil dihapus!', 'success');
-        console.log('✓ Lokasi dihapus:', deletedLocation.nama_lokasi);
+
     } catch (error) {
         console.error('❌ Error:', error);
         showSearchError('❌ Gagal menghapus lokasi', 'error');
@@ -656,6 +674,9 @@ async function handleClearAll() {
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
                 }
+            }).then(res => {
+                if (!res.ok) throw new Error('Delete failed for ' + loc.id);
+                return res;
             })
         );
 
@@ -666,7 +687,7 @@ async function handleClearAll() {
         clearAllMarkersFromMap();
 
         showSearchError('✓ Semua lokasi berhasil dihapus!', 'success');
-        console.log('✓ Semua lokasi dihapus');
+
     } catch (error) {
         console.error('❌ Error:', error);
         showSearchError('❌ Gagal menghapus semua lokasi', 'error');
@@ -734,7 +755,7 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
 
         // Show success message
         showSearchError('✓ Lokasi berhasil diubah!', 'success');
-        console.log('✓ Lokasi diupdate dari:', oldLocation.nama_lokasi, 'menjadi:', savedLocations[index].nama_lokasi);
+
     } catch (error) {
         console.error('❌ Error:', error);
         showSearchError('❌ Gagal mengupdate lokasi', 'error');
@@ -742,12 +763,27 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
 }
 
 // ==================== Map Markers ====================
+function getMarkerColor(kategori) {
+    const colors = {
+        'Pantai': 'blue',
+        'Gunung': 'green',
+        'Kota': 'violet',
+        'Alam': 'green',
+        'Budaya': 'gold',
+        'Kuliner': 'orange',
+        'Lainnya': 'red'
+    };
+    return colors[kategori] || 'red';
+}
+
 function addMarkerToMap(location) {
     const lat = Number(location.latitude);
     const lng = Number(location.longitude);
+    const color = getMarkerColor(location.kategori);
+
     const marker = L.marker([lat, lng], {
         icon: L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
             iconSize: [25, 41],
             iconAnchor: [12, 41],
@@ -769,7 +805,7 @@ function addMarkerToMap(location) {
     markers.push(marker);
     markerCluster.addLayer(marker); // Fitur 11: tambahkan ke cluster
 
-    console.log('\u2713 Marker ditambahkan:', location.nama_lokasi);
+
 }
 
 function renderMarkersOnMap() {
@@ -782,7 +818,7 @@ function removeMarkerFromMap(id) {
     if (index !== -1) {
         markerCluster.removeLayer(markers[index]); // Fitur 11
         markers.splice(index, 1);
-        console.log('\u2713 Marker dihapus');
+
     }
 }
 
@@ -821,7 +857,7 @@ function addSearchMarkerToMap(location) {
     map.flyTo([latitude, longitude], 13);
     currentSearchMarker.openPopup();
 
-    console.log('✓ Marker pencarian ditambahkan');
+
 }
 
 function clearCurrentSearchMarker() {
@@ -845,7 +881,7 @@ function zoomToLocation(latitude, longitude) {
         }
     });
 
-    console.log(`🔍 Zoom ke lokasi: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+
 }
 
 function focusLocation(id, latitude, longitude) {
@@ -921,6 +957,9 @@ function hideMultiResultList() {
 }
 
 function showSearchError(message, type = 'error') {
+    // Bersihkan prefix emoji dari pesan (karena sering di-hardcode)
+    message = message.replace(/^([❌✓⚠️✅ℹ️]\s*)/, '');
+
     // Fitur 1: gunakan toast untuk pesan sukses, error tetap pakai inline
     if (type === 'success') {
         showToast(message, 'success');
@@ -995,7 +1034,7 @@ function openEditModal(id, nama_lokasi, latitude, longitude) {
     document.getElementById('enableCoordEdit').checked = false;
     setCoordinateEditingEnabled(false);
     document.getElementById('editModal').style.display = 'flex';
-    console.log('✓ Edit modal dibuka untuk lokasi ID:', id);
+
 }
 
 function closeEditModal() {
@@ -1003,7 +1042,7 @@ function closeEditModal() {
     document.getElementById('enableCoordEdit').checked = false;
     setCoordinateEditingEnabled(false);
     currentEditingId = null;
-    console.log('✓ Edit modal ditutup');
+
 }
 
 function handleEditSubmit(e) {
@@ -1086,7 +1125,7 @@ function applyTheme(isDark) {
         }
     }
 
-    console.log(`✓ Tema diganti ke: ${isDark ? 'dark' : 'light'}`);
+
 }
 
 // ==================== Toast Notification (Fitur 1) ====================
@@ -1104,6 +1143,7 @@ function showToast(titleOrMessage, messageOrType = 'success', type) {
         toastType  = messageOrType;
     }
 
+    let msgClean = msg.replace(/^([❌✓⚠️✅ℹ️]\s*)/, '');
     let container = document.getElementById('toastContainer');
     if (!container) {
         container = document.createElement('div');
@@ -1113,10 +1153,17 @@ function showToast(titleOrMessage, messageOrType = 'success', type) {
 
     const toast = document.createElement('div');
     toast.className = `toast-item toast-${toastType}`;
-    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
-    const icon  = icons[toastType] || 'ℹ️';
+    
+    // Ganti emoji dengan SVG
+    const icons = { 
+        success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#4ade80"><polyline points="20 6 9 17 4 12"/></svg>', 
+        error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#f87171"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>', 
+        info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#60a5fa"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>', 
+        warning: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#fbbf24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' 
+    };
+    const icon  = icons[toastType] || icons['info'];
     const titleHtml = title ? `<strong>${title}:</strong> ` : '';
-    toast.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${titleHtml}${msg}</span>`;
+    toast.innerHTML = `<span class="toast-icon" style="display:flex;align-items:center;">${icon}</span><span class="toast-msg" style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;">${titleHtml}${msgClean}</span>`;
     container.appendChild(toast);
 
     requestAnimationFrame(() => toast.classList.add('show'));
@@ -1139,9 +1186,11 @@ function initSearchHistory() {
     // Tampilkan saat fokus
     searchInput.addEventListener('focus', () => renderSearchHistory());
 
-    // Tutup saat blur (delay agar klik item bisa terjadi)
-    searchInput.addEventListener('blur', () => {
-        setTimeout(() => hideSearchHistory(), 200);
+    // Tutup jika mengklik di luar kotak pencarian dan dropdown
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !historyEl.contains(e.target)) {
+            hideSearchHistory();
+        }
     });
 
     // Filter saat mengetik
@@ -1164,6 +1213,15 @@ function getSearchHistory() {
     catch { return []; }
 }
 
+function removeHistoryItem(query) {
+    let history = getSearchHistory();
+    history = history.filter(h => h.toLowerCase() !== query.toLowerCase());
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    renderSearchHistory();
+    // Jika riwayat habis setelah menghapus satuan, sembunyikan dropdown
+    if (history.length === 0) hideSearchHistory();
+}
+
 function renderSearchHistory() {
     const historyEl = document.getElementById('searchHistoryDropdown');
     if (!historyEl) return;
@@ -1176,9 +1234,10 @@ function renderSearchHistory() {
             <button class="history-clear-btn" onclick="clearSearchHistory()">Hapus Semua</button>
         </div>
         ${history.map(q => `
-            <div class="history-item" onmousedown="pickHistory('${q.replace(/'/g, "\\'")}')">
+            <div class="history-item" onclick="pickHistory('${q.replace(/'/g, "\\'")}')">
                 <span class="history-icon">🕐</span>
                 <span class="history-text">${q}</span>
+                <button type="button" class="history-item-del" aria-label="Hapus dari riwayat" onclick="event.stopPropagation(); removeHistoryItem('${q.replace(/'/g, "\\'")}')">×</button>
             </div>
         `).join('')}
     `;
@@ -1340,3 +1399,89 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ==================== Mobile Panel Toggle ====================
+function initMobileToggle() {
+    if (window.innerWidth <= 768) {
+        const leftPanel = document.querySelector('.left-panel');
+        if (!leftPanel) return;
+        
+        const handle = document.createElement('div');
+        handle.className = 'panel-handle';
+        leftPanel.prepend(handle);
+        
+        let startY = 0;
+        let startHeight = 0;
+        let isDragging = false;
+        let hasDragged = false;
+        
+        handle.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            startHeight = leftPanel.getBoundingClientRect().height;
+            isDragging = true;
+            hasDragged = false;
+        }, { passive: true });
+        
+        handle.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const currentY = e.touches[0].clientY;
+            const diffY = startY - currentY;
+            
+            // Berikan toleransi 5px agar tap tidak tidak sengaja terbaca sebagai drag
+            if (!hasDragged && Math.abs(diffY) > 5) {
+                hasDragged = true;
+                // Kunci height awal sebelum class collapsed dilepas agar tidak lompat
+                leftPanel.style.height = `${startHeight}px`;
+                leftPanel.classList.add('dragging');
+                leftPanel.classList.remove('collapsed');
+            }
+            
+            if (hasDragged) {
+                let newHeight = startHeight + diffY;
+                const minHeight = 28;
+                const maxHeight = window.innerHeight * 0.85;
+                
+                if (newHeight < minHeight) newHeight = minHeight;
+                if (newHeight > maxHeight) newHeight = maxHeight;
+                
+                leftPanel.style.height = `${newHeight}px`;
+            }
+        }, { passive: true });
+        
+        handle.addEventListener('touchend', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            if (!hasDragged) return; // Biarkan event click yang menangani jika hanya tap
+            
+            leftPanel.classList.remove('dragging');
+            
+            const currentHeight = leftPanel.getBoundingClientRect().height;
+            const threshold = window.innerHeight * 0.25;
+            
+            // Snap logic
+            if (currentHeight < threshold) {
+                leftPanel.style.height = '';
+                leftPanel.classList.add('collapsed');
+            } else if (currentHeight > window.innerHeight * 0.6) {
+                leftPanel.style.height = '80vh';
+            } else {
+                leftPanel.style.height = '42vh';
+            }
+        });
+        
+        handle.addEventListener('click', () => {
+            if (hasDragged) {
+                hasDragged = false;
+                return;
+            }
+            if (leftPanel.classList.contains('collapsed')) {
+                leftPanel.classList.remove('collapsed');
+                leftPanel.style.height = '42vh';
+            } else {
+                leftPanel.style.height = '';
+                leftPanel.classList.add('collapsed');
+            }
+        });
+    }
+}
