@@ -16,7 +16,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
             background: #0d1117;
         }
