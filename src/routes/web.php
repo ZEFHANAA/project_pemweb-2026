@@ -44,12 +44,14 @@ Route::post('/reset-password', [\App\Http\Controllers\PasswordResetController::c
 
 
 // API Lokasi routes — export harus di atas agar tidak ditangkap oleh {lokasi}
-Route::get('/api/lokasi/export', [LokasiController::class, 'export']);
-Route::get('/api/lokasi',          [LokasiController::class, 'index']);
-Route::post('/api/lokasi',         [LokasiController::class, 'store']);
-Route::get('/api/lokasi/{lokasi}', [LokasiController::class, 'show']);
-Route::put('/api/lokasi/{lokasi}', [LokasiController::class, 'update']);
-Route::delete('/api/lokasi/{lokasi}', [LokasiController::class, 'destroy']);
+Route::middleware('auth')->group(function () {
+    Route::get('/api/lokasi/export', [LokasiController::class, 'export']);
+    Route::get('/api/lokasi',          [LokasiController::class, 'index']);
+    Route::post('/api/lokasi',         [LokasiController::class, 'store']);
+    Route::get('/api/lokasi/{lokasi}', [LokasiController::class, 'show']);
+    Route::put('/api/lokasi/{lokasi}', [LokasiController::class, 'update']);
+    Route::delete('/api/lokasi/{lokasi}', [LokasiController::class, 'destroy']);
+});
 
 // API Profile routes
 Route::put('/api/profile', [ProfileController::class, 'update'])->middleware('auth');
