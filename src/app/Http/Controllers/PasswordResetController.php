@@ -45,9 +45,11 @@ class PasswordResetController extends Controller
 
         $action_link = route('password.reset', ['token' => $token, 'email' => $request->email]);
 
+        $user = User::where('email', $request->email)->first();
+
         // Kirim email
         try {
-            Mail::send('auth.email-reset', ['action_link' => $action_link], function($message) use($request) {
+            Mail::send('auth.email-reset', ['action_link' => $action_link, 'user' => $user], function($message) use($request) {
                 $message->to($request->email);
                 $message->subject('Reset Password - Peta Wisata');
             });
