@@ -38,7 +38,7 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "13306:3306"
+      - "127.0.0.1:13306:3306"
     environment:
       # Database ini akan dibuat saat kontainer pertama kali dijalankan
       MYSQL_DATABASE: ${PROJECT_NAME}
@@ -46,3 +46,15 @@ services:
     volumes:
       - ./db/conf.d:/etc/mysql/conf.d
       - ./db/data:/var/lib/mysql
+
+  queue:
+    build:
+      context: ./php
+    container_name: ${COMPOSE_PROJECT_NAME}_queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy

@@ -15,3 +15,5 @@ src/.env
 db/data/
 src/.env
 .env
+src/.env.vps
+src/.env.vps_debug
