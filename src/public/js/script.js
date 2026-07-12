@@ -29,7 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ==================== Map Initialization ====================
 function initMap() {
-    map = L.map('map', { attributionControl: false }).setView([-6.2088, 106.8456], 5);
+    map = L.map('map', { 
+        attributionControl: false,
+        zoomControl: false
+    }).setView([-6.2088, 106.8456], 5);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
@@ -73,6 +78,8 @@ function setupEventListeners() {
     const editForm = document.getElementById('editForm');
     if (editForm) {
         editForm.addEventListener('submit', handleEditSubmit);
+        const editNama = document.getElementById('editNamaLokasi');
+        if (editNama) editNama.addEventListener('input', () => editNama.classList.remove('is-invalid'));
     }
 
     const enableCoordEdit = document.getElementById('enableCoordEdit');
@@ -168,7 +175,7 @@ async function handleSearch(e) {
         setSearchBusy(false);
 
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('Error:', error);
         showSearchError('Gagal mencari lokasi. Periksa koneksi internet Anda.');
         setSearchBusy(false);
     }
@@ -210,12 +217,17 @@ function displaySearchResult(location) {
     const latitude = parseFloat(location.lat);
     const longitude = parseFloat(location.lon);
     const name = location.name || location.display_name;
+    const safeName = escapeHtml(name);
+    const safeAddr = escapeHtml(location.display_name);
 
     resultContent.innerHTML = `
         <div id="resultThumbnail" class="result-thumbnail" style="display:none;">
-            <img id="resultThumbnailImg" src="" alt="Foto ${name}" class="thumbnail-img">
+            <img id="resultThumbnailImg" src="" alt="Foto ${safeName}" class="thumbnail-img">
         </div>
-        <h3>${name}</h3>
+        <div class="result-header">
+            <h3>${safeName}</h3>
+            <button type="button" class="result-cancel-btn" id="btnCancelResult" title="Batal cari" aria-label="Batal cari">&times;</button>
+        </div>
         <div class="result-detail">
             <strong>Latitude:</strong> ${latitude.toFixed(6)}
         </div>
@@ -223,18 +235,18 @@ function displaySearchResult(location) {
             <strong>Longitude:</strong> ${longitude.toFixed(6)}
         </div>
         <div class="result-detail">
-            <strong>Alamat:</strong> ${location.display_name}
+            <strong>Alamat:</strong> ${safeAddr}
         </div>
         <div class="result-detail">
             <label for="resultKategori"><strong>Kategori:</strong></label>
             <select id="resultKategori" class="filter-select" style="width:100%;margin-top:4px;">
-                <option value="Pantai">🏖️ Pantai</option>
-                <option value="Gunung">🏔️ Gunung</option>
-                <option value="Kota">🏙️ Kota</option>
-                <option value="Budaya">🏛️ Budaya</option>
-                <option value="Kuliner">🍜 Kuliner</option>
-                <option value="Alam">🌿 Alam</option>
-                <option value="Lainnya" selected>📍 Lainnya</option>
+                <option value="Pantai">Pantai</option>
+                <option value="Gunung">Gunung</option>
+                <option value="Kota">Kota</option>
+                <option value="Budaya">Budaya</option>
+                <option value="Kuliner">Kuliner</option>
+                <option value="Alam">Alam</option>
+                <option value="Lainnya" selected>Lainnya</option>
             </select>
         </div>
         <div class="result-detail">
@@ -246,7 +258,7 @@ function displaySearchResult(location) {
                 Simpan Lokasi
             </button>
             <a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" rel="noopener" class="btn-gmaps">
-                🗺️ Google Maps
+                Buka di Google Maps
             </a>
         </div>
     `;
@@ -256,6 +268,9 @@ function displaySearchResult(location) {
     // Fetch thumbnail dari Wikipedia
     fetchWikipediaThumbnail(name);
 
+    // Tombol batal: tutup result card tanpa simpan
+    document.getElementById('btnCancelResult')?.addEventListener('click', clearSearchForm);
+
     // attach event listener safely (avoid inline onclick quoting issues)
     const btn = document.getElementById('btnSaveResult');
     if (btn) {
@@ -264,7 +279,7 @@ function displaySearchResult(location) {
                 saveLokasi(name, latitude, longitude);
             } catch (e) {
                 console.error('Error calling saveLokasi:', e);
-                showSearchError('❌ Gagal menyimpan lokasi (client error)', 'error');
+                showSearchError('Gagal menyimpan lokasi (client error)', 'error');
             }
         });
     }
@@ -308,21 +323,21 @@ function validateCoordinates(latitude, longitude) {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         return {
             isValid: false,
-            message: '❌ Koordinat harus berupa angka yang valid'
+            message: 'Koordinat harus berupa angka yang valid'
         };
     }
 
     if (latitude < -90 || latitude > 90) {
         return {
             isValid: false,
-            message: '❌ Latitude harus di antara -90 sampai 90'
+            message: 'Latitude harus di antara -90 sampai 90'
         };
     }
 
     if (longitude < -180 || longitude > 180) {
         return {
             isValid: false,
-            message: '❌ Longitude harus di antara -180 sampai 180'
+            message: 'Longitude harus di antara -180 sampai 180'
         };
     }
 
@@ -369,9 +384,10 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
     // clear previous messages and disable save button while saving
     hideSearchError();
     const saveBtnEl = document.getElementById('btnSaveResult');
+    const originalSaveText = saveBtnEl ? saveBtnEl.innerHTML : '';
     if (saveBtnEl) {
         saveBtnEl.disabled = true;
-        saveBtnEl.textContent = 'Menyimpan...';
+        saveBtnEl.innerHTML = '<span class="spinner"></span> Menyimpan...';
     }
 
     try {
@@ -420,15 +436,15 @@ async function saveLokasi(nama_lokasi, latitude, longitude) {
         clearSearchForm();
 
         // Show success message
-        showSearchError('✓ Lokasi berhasil disimpan!', 'success');
+        showSearchError('Lokasi berhasil disimpan!', 'success');
 
     } catch (error) {
-        console.error('❌ Error:', error);
-        showSearchError('❌ Gagal menyimpan lokasi', 'error');
+        console.error('Error:', error);
+        showSearchError('Gagal menyimpan lokasi', 'error');
     } finally {
         if (saveBtnEl) {
             saveBtnEl.disabled = false;
-            saveBtnEl.textContent = 'Simpan Lokasi';
+            saveBtnEl.innerHTML = originalSaveText || 'Simpan Lokasi';
         }
     }
 }
@@ -454,7 +470,7 @@ async function loadLocations() {
             window.isAuthenticated = true;
         }
     } catch (error) {
-        console.error('❌ Error loading locations:', error);
+        console.error('Error loading locations:', error);
         savedLocations = [];
         window.isAuthenticated = false;
     }
@@ -480,7 +496,7 @@ function renderLocationsList(filterText = '', filterKat = '') {
     if (savedLocations.length === 0) {
         locationsList.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">🗺️</div>
+                <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/><line x1="1" y1="6" x2="8" y2="2"/><line x1="8" y1="2" x2="16" y2="6"/><line x1="16" y1="6" x2="23" y2="2"/></svg></div>
                 <p class="empty-title">Belum ada lokasi tersimpan</p>
                 <p class="empty-hint">Cari lokasi wisata di atas,<br>lalu klik <strong>Simpan Lokasi</strong></p>
             </div>`;
@@ -491,7 +507,7 @@ function renderLocationsList(filterText = '', filterKat = '') {
     if (filtered.length === 0) {
         locationsList.innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">🔍</div>
+                <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
                 <p class="empty-title">Tidak ada hasil</p>
                 <p class="empty-hint">Coba ubah kata kunci atau kategori filter</p>
             </div>`;
@@ -501,35 +517,33 @@ function renderLocationsList(filterText = '', filterKat = '') {
 
     clearAllBtn.style.display = 'block';
 
-    // Map kategori to emoji
-    const kategoriEmoji = {
-        'Pantai': '🏖️', 'Gunung': '🏔️', 'Kota': '🏙️',
-        'Budaya': '🏛️', 'Kuliner': '🍜', 'Alam': '🌿', 'Lainnya': '📍'
-    };
-
+    // Map kategori to color + initial — konsisten sama marker di peta
     const listHTML = filtered.map(location => {
         const lat = Number(location.latitude);
         const lng = Number(location.longitude);
         const latStr = Number.isFinite(lat) ? lat.toFixed(4) : '';
         const lngStr = Number.isFinite(lng) ? lng.toFixed(4) : '';
         const safeName = (location.nama_lokasi || '').replace(/'/g, "\\'").replace(/\n/g, ' ');
-        const desc = location.deskripsi ? location.deskripsi : '';
+        const eName = escapeHtml(location.nama_lokasi || '');
+        const eKat = escapeHtml(location.kategori || 'Lainnya');
+        const eDesc = escapeHtml(location.deskripsi ? location.deskripsi : '');
         const kat  = location.kategori  || 'Lainnya';
-        const emoji = kategoriEmoji[kat] || '📍';
+        const badgeColor = getMarkerPinColor(kat);
+        const initial = escapeHtml(getMarkerInitial(kat));
         const mapsUrl  = `https://www.google.com/maps?q=${lat},${lng}`;
         const shareUrl = `/lokasi/${location.id}`;
 
         return `
-        <li class="location-item" data-location-id="${location.id}" data-kategori="${kat}">
+        <li class="location-item" data-location-id="${location.id}" data-kategori="${eKat}">
             <div class="location-item-content" tabindex="0" onclick="focusLocation(${location.id}, ${lat || 0}, ${lng || 0})">
                 <div class="location-item-header">
-                    <div class="location-item-name">${location.nama_lokasi}</div>
-                    <span class="kategori-badge">${emoji} ${kat}</span>
+                    <div class="location-item-name">${eName}</div>
+                    <span class="kategori-badge"><span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${badgeColor};color:#fff;text-align:center;line-height:16px;font-size:9px;font-weight:700;margin-right:6px;vertical-align:middle;">${initial}</span>${eKat}</span>
                 </div>
                 <div class="location-item-coords">
                     ${latStr}, ${lngStr}
                 </div>
-                <div class="location-item-desc">${desc}</div>
+                <div class="location-item-desc">${eDesc}</div>
             </div>
             <div class="location-item-actions">
                 <button type="button" aria-label="Lihat ${safeName}" class="btn-view" onclick="focusLocation(${location.id}, ${lat || 0}, ${lng || 0})">
@@ -539,12 +553,12 @@ function renderLocationsList(filterText = '', filterKat = '') {
                     Edit
                 </button>
                 <a href="${mapsUrl}" target="_blank" rel="noopener" class="btn-gmaps-sm" aria-label="Buka di Google Maps" title="Google Maps">
-                    🗺️
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
                 </a>
                 <a href="${shareUrl}" target="_blank" rel="noopener" class="btn-share-sm" aria-label="Bagikan ${safeName}" title="Bagikan">
-                    🔗
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 </a>
-                <button type="button" aria-label="Hapus ${safeName}" class="btn-delete" onclick="deleteLokasi(${location.id})">
+                <button type="button" aria-label="Hapus ${safeName}" class="btn-delete" onclick="deleteLokasi(${location.id}, this)">
                     Hapus
                 </button>
             </div>
@@ -558,16 +572,22 @@ function renderLocationsList(filterText = '', filterKat = '') {
 }
 
 // ==================== Delete Location ====================
-async function deleteLokasi(id) {
+async function deleteLokasi(id, btnElement = null) {
     const index = savedLocations.findIndex(loc => loc.id === id);
 
     if (index === -1) {
-        console.error('❌ Lokasi tidak ditemukan');
+        console.error('Lokasi tidak ditemukan');
         return;
     }
 
     const confirmed = confirm('Hapus lokasi ini dari daftar?');
     if (!confirmed) return;
+
+    const originalText = btnElement ? btnElement.innerHTML : 'Hapus';
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<span class="spinner"></span>';
+    }
 
     try {
         const response = await fetch(`${API_URL}/${id}`, {
@@ -579,7 +599,7 @@ async function deleteLokasi(id) {
 
         if (!response.ok) {
             if (response.status === 401) {
-                showSearchError('⚠️ Silakan login terlebih dahulu untuk menghapus lokasi', 'error');
+                showSearchError('Silakan login terlebih dahulu untuk menghapus lokasi', 'error');
                 return;
             }
             throw new Error('Gagal menghapus lokasi');
@@ -595,11 +615,16 @@ async function deleteLokasi(id) {
         renderLocationsList();
         renderMarkersOnMap();
 
-        showSearchError('✓ Lokasi berhasil dihapus!', 'success');
+        showSearchError('Lokasi berhasil dihapus!', 'success');
 
     } catch (error) {
-        console.error('❌ Error:', error);
-        showSearchError('❌ Gagal menghapus lokasi', 'error');
+        console.error('Error:', error);
+        showSearchError('Gagal menghapus lokasi', 'error');
+    } finally {
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalText;
+        }
     }
 }
 
@@ -608,13 +633,13 @@ async function handleExportCsv() {
     // Cek login
     const authMeta = document.querySelector('meta[name="auth-status"]');
     if (!authMeta || authMeta.content !== 'authenticated') {
-        showSearchError('⚠️ Silakan login terlebih dahulu untuk mengekspor CSV', 'error');
+        showSearchError('Silakan login terlebih dahulu untuk mengekspor CSV', 'error');
         return;
     }
 
     // Cek apakah ada lokasi
     if (savedLocations.length === 0) {
-        showSearchError('⚠️ Tidak ada lokasi tersimpan untuk diekspor', 'error');
+        showSearchError('Tidak ada lokasi tersimpan untuk diekspor', 'error');
         return;
     }
 
@@ -626,14 +651,14 @@ async function handleExportCsv() {
         });
 
         if (response.status === 401) {
-            showSearchError('⚠️ Silakan login terlebih dahulu untuk mengekspor CSV', 'error');
+            showSearchError('Silakan login terlebih dahulu untuk mengekspor CSV', 'error');
             return;
         }
 
         if (!response.ok) {
             const txt = await response.text();
             console.error('Export failed:', txt);
-            showSearchError('❌ Gagal mengekspor CSV', 'error');
+            showSearchError('Gagal mengekspor CSV', 'error');
             return;
         }
 
@@ -651,10 +676,10 @@ async function handleExportCsv() {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
-        showSearchError(`✓ CSV berhasil diunduh (${savedLocations.length} lokasi)`, 'success');
+        showSearchError(`CSV berhasil diunduh (${savedLocations.length} lokasi)`, 'success');
     } catch (error) {
         console.error('Export error:', error);
-        showSearchError('❌ Gagal mengekspor CSV', 'error');
+        showSearchError('Gagal mengekspor CSV', 'error');
     }
 }
 
@@ -686,11 +711,11 @@ async function handleClearAll() {
         renderLocationsList();
         clearAllMarkersFromMap();
 
-        showSearchError('✓ Semua lokasi berhasil dihapus!', 'success');
+        showSearchError('Semua lokasi berhasil dihapus!', 'success');
 
     } catch (error) {
-        console.error('❌ Error:', error);
-        showSearchError('❌ Gagal menghapus semua lokasi', 'error');
+        console.error('Error:', error);
+        showSearchError('Gagal menghapus semua lokasi', 'error');
     }
 }
 
@@ -699,15 +724,18 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
     const index = savedLocations.findIndex(loc => loc.id === id);
 
     if (index === -1) {
-        showSearchError('❌ Lokasi tidak ditemukan', 'error');
-        console.error('❌ Lokasi tidak ditemukan');
+        showSearchError('Lokasi tidak ditemukan', 'error');
+        console.error('Lokasi tidak ditemukan');
         return;
     }
 
     const cleanName = nama_lokasi.trim();
     if (!cleanName) {
-        showSearchError('❌ Nama lokasi tidak boleh kosong', 'error');
+        document.getElementById('editNamaLokasi')?.classList.add('is-invalid');
+        showSearchError('Nama lokasi tidak boleh kosong', 'error');
         return;
+    } else {
+        document.getElementById('editNamaLokasi')?.classList.remove('is-invalid');
     }
 
     const parsedLatitude = Number(latitude);
@@ -719,6 +747,13 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
     if (!validation.isValid) {
         showSearchError(validation.message, 'error');
         return;
+    }
+
+    const editFormSubmitBtn = document.querySelector('#editForm button[type="submit"]');
+    const originalText = editFormSubmitBtn ? editFormSubmitBtn.innerHTML : 'Simpan';
+    if (editFormSubmitBtn) {
+        editFormSubmitBtn.disabled = true;
+        editFormSubmitBtn.innerHTML = '<span class="spinner"></span> Menyimpan...';
     }
 
     try {
@@ -754,50 +789,74 @@ async function updateLokasi(id, nama_lokasi, latitude, longitude, deskripsi = ''
         zoomToLocation(normalizedLatitude, normalizedLongitude);
 
         // Show success message
-        showSearchError('✓ Lokasi berhasil diubah!', 'success');
+        showSearchError('Lokasi berhasil diubah!', 'success');
 
     } catch (error) {
-        console.error('❌ Error:', error);
-        showSearchError('❌ Gagal mengupdate lokasi', 'error');
+        console.error('Error:', error);
+        showSearchError('Gagal mengupdate lokasi', 'error');
+    } finally {
+        if (editFormSubmitBtn) {
+            editFormSubmitBtn.disabled = false;
+            editFormSubmitBtn.innerHTML = originalText;
+        }
     }
 }
 
 // ==================== Map Markers ====================
-function getMarkerColor(kategori) {
+// Warna pin untuk marker — color-coded per kategori
+function getMarkerPinColor(kategori) {
     const colors = {
-        'Pantai': 'blue',
-        'Gunung': 'green',
-        'Kota': 'violet',
-        'Alam': 'green',
-        'Budaya': 'gold',
-        'Kuliner': 'orange',
-        'Lainnya': 'red'
+        'Pantai': '#0d9488',
+        'Gunung': '#ca8a04',
+        'Kota': '#7c3aed',
+        'Alam': '#166534',
+        'Budaya': '#b45309',
+        'Kuliner': '#ea580c',
+        'Lainnya': '#94a3b8'
     };
-    return colors[kategori] || 'red';
+    return colors[kategori] || '#94a3b8';
+}
+
+// Inisial kategori buat label kecil di marker
+function getMarkerInitial(kategori) {
+    const initials = {
+        'Pantai': 'P',
+        'Gunung': 'G',
+        'Kota': 'K',
+        'Alam': 'A',
+        'Budaya': 'B',
+        'Kuliner': 'U',
+        'Lainnya': '·'
+    };
+    return initials[kategori] || '·';
 }
 
 function addMarkerToMap(location) {
     const lat = Number(location.latitude);
     const lng = Number(location.longitude);
-    const color = getMarkerColor(location.kategori);
+    const pinColor = getMarkerPinColor(location.kategori);
+    const initial = getMarkerInitial(location.kategori);
+    const eName = escapeHtml(location.nama_lokasi || '');
+    const eKat = escapeHtml(location.kategori || 'Lainnya');
+    const eDesc = location.deskripsi ? escapeHtml(location.deskripsi) : '';
+    const latStr = Number.isFinite(lat) ? lat.toFixed(5) : '';
+    const lngStr = Number.isFinite(lng) ? lng.toFixed(5) : '';
 
     const marker = L.marker([lat, lng], {
-        icon: L.icon({
-            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
+        icon: L.divIcon({
+            className: 'petawisata-marker',
+            html: `<div style="position:relative;width:30px;height:42px;"><span style="position:absolute;top:0;left:0;width:30px;height:30px;background:${pinColor};border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 5px rgba(0,0,0,.4);border:2px solid #fff;"></span><span style="position:absolute;top:7px;left:0;width:30px;text-align:center;color:#fff;font-size:13px;font-weight:700;font-family:'Inter',sans-serif;line-height:1;">${escapeHtml(initial)}</span></div>`,
+            iconSize: [30, 42],
+            iconAnchor: [15, 42],
+            popupAnchor: [0, -38]
         })
     }).bindPopup(`
-        <div style="text-align: center;">
-            <h4 style="margin: 5px 0; color: #333;">${escapeHtml(location.nama_lokasi)}</h4>
-            <p style="margin: 5px 0; font-size: 12px; color: #666;">
-                Lat: ${Number.isFinite(lat) ? lat.toFixed(4) : ''}<br>
-                Lon: ${Number.isFinite(lng) ? lng.toFixed(4) : ''}
-            </p>
-            ${location.deskripsi ? `<p style="margin:5px 0; font-size:12px; color:#555;">${escapeHtml(location.deskripsi)}</p>` : ''}
+        <div style="text-align: center; min-width: 180px;">
+            <h4 style="margin: 5px 0; font-size: 15px; color: #1e293b;">${eName}</h4>
+            <span style="display:inline-block;background:${pinColor};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:4px 0;">${eKat}</span>
+            ${eDesc ? `<p style="margin: 8px 0 4px; font-size: 12px; color: #64748b; text-align:left;">${eDesc}</p>` : ''}
+            <p style="margin: 4px 0; font-size: 11px; color: #94a3b8; font-family: monospace;">${latStr}, ${lngStr}</p>
+            <a href="/lokasi/${location.id}" style="display:inline-block;margin-top:6px;font-size:12px;color:#3b82f6;text-decoration:none;font-weight:600;">Lihat detail →</a>
         </div>
     `);
 
@@ -892,6 +951,14 @@ function focusLocation(id, latitude, longitude) {
 // ==================== UI Helper Functions ====================
 function showSearchResult(show = true) {
     document.getElementById('searchResult').style.display = show ? 'block' : 'none';
+    // result-active: dulu sembunyikan Tersimpan di mobile, sekarang Tersimpan tetap ada.
+    // Saat result ditutup, scroll panel ke atas Tersimpan biar list update kelihatan.
+    document.querySelector('.left-panel')?.classList.toggle('result-active', show);
+    if (!show) {
+        const lp = document.querySelector('.left-panel');
+        const ls = document.querySelector('.locations-section');
+        if (lp && ls) lp.scrollTo({ top: ls.offsetTop - lp.offsetTop, behavior: 'smooth' });
+    }
 }
 
 function hideSearchResult() {
@@ -919,15 +986,18 @@ function displayMultiResultList(results) {
     };
 
     list.innerHTML = results.map((r, i) => {
-        const shortAddr = r.display_name.split(',').slice(0, 3).join(', ');
+        const shortAddrRaw = r.display_name.split(',').slice(0, 3).join(', ');
+        const shortAddr = escapeHtml(shortAddrRaw);
+        const nameRaw = r.name || shortAddrRaw;
+        const name = escapeHtml(nameRaw);
+        const type = escapeHtml(typeLabel(r.type || r.class));
         const lat = parseFloat(r.lat).toFixed(4);
         const lon = parseFloat(r.lon).toFixed(4);
-        const type = typeLabel(r.type || r.class);
         return `
             <div class="multi-result-item" tabindex="0" role="button"
                  onclick="selectMultiResult(${i})" onkeydown="if(event.key==='Enter')selectMultiResult(${i})">
                 <div class="multi-result-type">${type}</div>
-                <div class="multi-result-name">${r.name || shortAddr}</div>
+                <div class="multi-result-name">${name}</div>
                 <div class="multi-result-addr">${shortAddr}</div>
                 <div class="multi-result-coords">${lat}, ${lon}</div>
             </div>
@@ -996,6 +1066,10 @@ function updateSavedCount() {
     const badge = document.getElementById('savedCountBadge');
     if (badge) {
         badge.textContent = String(savedLocations.length);
+    }
+    const exportBtn = document.getElementById('exportCsvBtn');
+    if (exportBtn) {
+        exportBtn.disabled = savedLocations.length === 0;
     }
 }
 
@@ -1103,7 +1177,9 @@ function toggleDarkMode() {
 function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     const icon = document.querySelector('.theme-icon');
-    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    if (icon) icon.innerHTML = isDark
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
 
     // Update Leaflet tile layer for dark mode (switch to dark tiles)
     if (map) {
@@ -1143,7 +1219,7 @@ function showToast(titleOrMessage, messageOrType = 'success', type) {
         toastType  = messageOrType;
     }
 
-    let msgClean = msg.replace(/^([❌✓⚠️✅ℹ️]\s*)/, '');
+    let msgClean = escapeHtml(msg.replace(/^([❌✓⚠️✅ℹ️]\s*)/, ''));
     let container = document.getElementById('toastContainer');
     if (!container) {
         container = document.createElement('div');
@@ -1162,7 +1238,7 @@ function showToast(titleOrMessage, messageOrType = 'success', type) {
         warning: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#fbbf24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' 
     };
     const icon  = icons[toastType] || icons['info'];
-    const titleHtml = title ? `<strong>${title}:</strong> ` : '';
+    const titleHtml = title ? `<strong>${escapeHtml(title)}:</strong> ` : '';
     toast.innerHTML = `<span class="toast-icon" style="display:flex;align-items:center;">${icon}</span><span class="toast-msg" style="font-family:'Inter',sans-serif;font-size:13.5px;font-weight:500;">${titleHtml}${msgClean}</span>`;
     container.appendChild(toast);
 
@@ -1230,16 +1306,19 @@ function renderSearchHistory() {
 
     historyEl.innerHTML = `
         <div class="history-header">
-            <span>🕐 Riwayat Pencarian</span>
+            <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Riwayat Pencarian</span>
             <button class="history-clear-btn" onclick="clearSearchHistory()">Hapus Semua</button>
         </div>
-        ${history.map(q => `
-            <div class="history-item" onclick="pickHistory('${q.replace(/'/g, "\\'")}')">
-                <span class="history-icon">🕐</span>
-                <span class="history-text">${q}</span>
-                <button type="button" class="history-item-del" aria-label="Hapus dari riwayat" onclick="event.stopPropagation(); removeHistoryItem('${q.replace(/'/g, "\\'")}')">×</button>
+        ${history.map(q => {
+            const eq = escapeHtml(q);
+            const sq = q.replace(/'/g, "\\'");
+            return `
+            <div class="history-item" onclick="pickHistory('${sq}')">
+                <span class="history-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                <span class="history-text">${eq}</span>
+                <button type="button" class="history-item-del" aria-label="Hapus dari riwayat" onclick="event.stopPropagation(); removeHistoryItem('${sq}')">×</button>
             </div>
-        `).join('')}
+        `;}).join('')}
     `;
     historyEl.style.display = 'block';
 }
@@ -1484,4 +1563,13 @@ function initMobileToggle() {
             }
         });
     }
+}
+
+// Global toggle password visibility — dipanggil dari auth blade views (login, register, reset-password)
+function togglePass(id, btn) {
+    const inp = document.getElementById(id);
+    const on  = inp.type === 'text';
+    inp.type = on ? 'password' : 'text';
+    btn.querySelector('.eye-on').style.display  = on ? 'block' : 'none';
+    btn.querySelector('.eye-off').style.display = on ? 'none' : 'block';
 }

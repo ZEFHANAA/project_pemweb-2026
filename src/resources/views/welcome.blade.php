@@ -5,18 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="auth-status" content="{{ Auth::check() ? 'authenticated' : 'guest' }}">
-    <title>Sistem Pencarian & Simpan Lokasi Wisata</title>
-    <meta name="description" content="Cari, simpan, dan bagikan lokasi wisata favorit di Indonesia menggunakan peta interaktif.">
+    <title>Petawisata — Temukan Wisata Indonesia</title>
+    <meta name="description" content="Petawisata: cari, simpan, dan bagi lokasi wisata di Indonesia. Peta interaktif, bisa dicoba tanpa login.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://petawisata.my.id/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Petawisata — Temukan Wisata Indonesia">
+    <meta property="og:description" content="Cari, simpan, dan bagi lokasi wisata di Indonesia pada peta interaktif.">
+    <meta property="og:url" content="https://petawisata.my.id/">
+    <meta property="og:site_name" content="Petawisata">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Petawisata — Temukan Wisata Indonesia">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('favicon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
     <style>
-        .tab-btn { background:none; border:none; padding:10px 15px; cursor:pointer; color:var(--t4); font-weight:600; border-bottom:2px solid transparent; transition:all .18s; font-family:'Inter',sans-serif; font-size:13px; }
+        .tab-btn { background:none; border:none; padding:10px 15px; cursor:pointer; color:var(--t4); font-weight:600; border-bottom:2px solid transparent; transition:background .15s; font-family:'Inter',sans-serif; font-size:13px; }
         .tab-btn.active { color:var(--blue-btn); border-bottom-color:var(--blue-btn); }
         .tab-btn:hover { color:var(--blue-btn); }
+        .hero-btn-primary, .hero-btn-secondary { transition: background .15s; }
     </style>
     <script>
         (function() {
@@ -40,8 +52,8 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
                 </div>
                 <div class="header-text">
-                    <h1>Lokasi Wisata</h1>
-                    <p class="subtitle">Temukan dan simpan destinasi favorit Anda</p>
+                    <div class="header-brand">Petawisata</div>
+                    <p class="subtitle">Peta wisata Indonesia</p>
                 </div>
             </div>
             <div class="header-auth">
@@ -69,16 +81,13 @@
     {{-- GUEST HERO --}}
     @guest
     <div class="guest-hero" id="guestHero">
-        <div class="guest-hero-bg"></div>
         <div class="guest-hero-content">
-            <div class="guest-hero-badge">Peta Wisata Indonesia</div>
-            <h2 class="guest-hero-title">Cari & Simpan<br>Lokasi Wisata</h2>
-            <p class="guest-hero-sub">Temukan destinasi wisata di seluruh Indonesia, simpan ke akun Anda, dan bagikan ke teman.</p>
+            <h1 class="guest-hero-title">Temukan Wisata Favoritmu</h1>
+            <p class="guest-hero-sub">Cari wisata di Indonesia, simpan yang menarik, lihat di peta. Coba tanpa login dulu.</p>
             <div class="guest-hero-actions">
                 <a href="/register" class="hero-btn-primary">Buat Akun</a>
                 <a href="/login" class="hero-btn-secondary">Masuk</a>
             </div>
-            <p class="guest-hero-hint">Pencarian bisa dicoba tanpa login</p>
         </div>
         <button class="hero-close-btn" onclick="document.getElementById('guestHero').style.display='none'" aria-label="Tutup banner">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -159,15 +168,10 @@
 
                 <div class="panel-actions">
                     <button id="clearAllBtn" type="button" class="btn btn-danger btn-sm" style="display:none;">Hapus Semua</button>
-                    <button id="exportCsvBtn" type="button" class="btn btn-secondary btn-sm">Export CSV</button>
+                    <button id="exportCsvBtn" type="button" class="btn btn-secondary btn-sm" disabled>Export XLS</button>
                 </div>
             </section>
 
-            @guest
-            <div class="login-nudge">
-                <p><a href="/login" style="color:var(--blue-btn);font-weight:600;">Masuk</a> untuk menyimpan lokasi favoritmu</p>
-            </div>
-            @endguest
         </aside>
     </main>
 

@@ -27,7 +27,7 @@
                     <!-- Body -->
                     <tr>
                         <td style="padding: 24px 36px 0;">
-                            <p style="margin: 0; font-size: 14px; color: #3f3f46; line-height: 1.6;">Halo,</p>
+                            <p style="margin: 0; font-size: 14px; color: #3f3f46; line-height: 1.6;">Halo {{ $user->name }},</p>
                             <p style="margin: 16px 0 0; font-size: 14px; color: #3f3f46; line-height: 1.6;">
                                 Seseorang meminta reset password untuk akun yang terhubung dengan alamat e-mail ini. Jika ini memang Anda, klik tombol di bawah:
                             </p>
@@ -37,7 +37,7 @@
                     <!-- Button -->
                     <tr>
                         <td style="padding: 24px 36px 0;">
-                            <a href="{{ $action_link }}" target="_blank" style="display: inline-block; padding: 12px 28px; background-color: #2563eb; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px;">Reset Password</a>
+                            <a href="{{ $action_link }}" target="_blank" style="display: inline-block; padding: 12px 28px; background-color: #0c2d3a; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 6px;">Reset Password</a>
                         </td>
                     </tr>
 

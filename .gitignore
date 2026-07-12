@@ -10,3 +10,10 @@ src/node_modules/
 # Environment files
 .env
 src/.env
+
+# Ignored credentials and db
+db/data/
+src/.env
+.env
+# SSL certificates (Cloudflare Origin — private keys, never commit)
+nginx/ssl/

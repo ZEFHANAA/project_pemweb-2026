@@ -1,0 +1,205 @@
+/* ==================== PETAWISATA — Shared Auth Stylesheet ====================
+   Palet: wisata Indonesia — laut teal + candi amber + slate.
+   Layout: split-screen (brand kiri + form kanan). Konsisten untuk semua auth view.
+   Radius: 2 tingkat — --r-card 12px (card macro), --r-field 8px (input/btn/badge).
+   Bind-mount: edit langsung live, cache-bust via ?v=mtime di blade.
+   ponytail: ceiling = dual-tenant theming (filament admin gak ikut), upgrade saat multi-brand.
+*/
+:root {
+    --pw-primary:    #0e7490;    /* teal laut dalam */
+    --pw-primary-d:  #0c5a70;    /* teal hover */
+    --pw-accent:     #b45309;    /* amber candi */
+    --pw-ink:        #0c2d3a;    /* teal-slate gelap (brand panel) */
+    --pw-surface:    #ffffff;
+    --pw-border:     #e2e8f0;
+    --pw-text:       #0f172a;
+    --pw-text-2:     #64748b;
+    --pw-input-bg:   #f8fafc;
+    --pw-error-bg:   #fef2f2;
+    --pw-error-bd:   #fecaca;
+    --pw-error-ink:  #b91c1c;
+    --pw-ok-bg:      #f0fdf4;
+    --pw-ok-bd:      #bbf7d0;
+    --pw-ok-ink:     #15803d;
+
+    --r-card: 12px;
+    --r-field: 8px;
+
+    --pw-font: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--pw-font);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 480px;
+    overflow-x: hidden;
+    background: var(--pw-surface);
+}
+
+/* ===== SPLIT: Brand panel kiri ===== */
+.side-visual {
+    background:
+        radial-gradient(circle at 30% 20%, rgba(14,116,144,.25), transparent 55%),
+        radial-gradient(circle at 80% 80%, rgba(180,83,9,.18), transparent 50%),
+        var(--pw-ink);
+    color: #fff;
+    padding: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+.side-visual::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(160deg, #000 20%, transparent 80%);
+    pointer-events: none;
+}
+.side-visual > * { position: relative; z-index: 2; }
+
+/* Dekorasi: ilustrasi gunung + pin peta (identitas wisata) */
+.side-visual::after {
+    content: '';
+    position: absolute;
+    right: -40px; bottom: -40px;
+    width: 340px; height: 340px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none'><g stroke='%23b45309' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'><path d='M30 160 L70 95 L95 130 L130 70 L170 160 Z'/><path d='M70 95 L100 115 M130 70 L150 95'/><circle cx='130' cy='70' r='6' fill='%23b45309' opacity='0.6'/><path d='M130 76 L130 95' stroke-dasharray='3 4'/><path d='M160 50 L160 42 M160 50 L168 50' stroke='%23b45309'/></g><g stroke='%230e7490' stroke-width='2' opacity='0.4'><path d='M10 185 Q50 175 90 182 T170 180'/></g></svg>");
+    background-repeat: no-repeat;
+    background-position: bottom right;
+    background-size: contain;
+    opacity: .55;
+    pointer-events: none;
+    z-index: 1;
+}
+.brand-mark {
+    font-size: 13px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--pw-accent);
+    margin-bottom: 24px;
+}
+.side-visual h2 {
+    font-size: 36px; font-weight: 800;
+    line-height: 1.15; margin-bottom: 16px;
+}
+.side-visual p {
+    font-size: 16px; color: rgba(255,255,255,.7);
+    line-height: 1.6; max-width: 320px;
+}
+
+/* ===== SPLIT: Form panel kanan ===== */
+.card-wrapper {
+    background: var(--pw-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 40px;
+}
+.card { width: 100%; max-width: 400px; }
+
+/* ===== Brand bar di form panel ===== */
+.brand-name {
+    font-size: 13px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--pw-primary);
+    margin-bottom: 4px;
+}
+.brand-sub-name { font-size: 11px; color: var(--pw-text-2); font-weight: 400; }
+
+.divider { height: 1px; background: var(--pw-border); margin: 24px -4px 24px; }
+
+/* ===== Heading ===== */
+.card-heading h1 { font-size: 28px; font-weight: 800; color: var(--pw-text); letter-spacing: -.02em; margin-bottom: 6px; }
+.card-heading p { font-size: 14px; color: var(--pw-text-2); line-height: 1.5; margin-bottom: 24px; }
+
+/* ===== Error / Success boxes ===== */
+.error-box {
+    background: var(--pw-error-bg); border: 1px solid var(--pw-error-bd);
+    border-left: 3px solid #ef4444; border-radius: var(--r-field);
+    padding: 11px 13px; margin-bottom: 18px;
+}
+.error-box ul { list-style: none; color: var(--pw-error-ink); font-size: 13px; line-height: 1.6; }
+.success-box {
+    background: var(--pw-ok-bg); border: 1px solid var(--pw-ok-bd);
+    border-left: 3px solid #22c55e; border-radius: var(--r-field);
+    padding: 11px 13px; margin-bottom: 18px; color: var(--pw-ok-ink);
+    font-size: 13px; line-height: 1.6;
+}
+
+/* ===== Form ===== */
+.form-group { margin-bottom: 16px; }
+.form-label {
+    display: block; font-size: 12.5px; font-weight: 600;
+    color: #374151; margin-bottom: 6px; letter-spacing: .01em;
+}
+.input-wrap { position: relative; }
+.input-icon {
+    position: absolute; left: 12px; top: 50%;
+    transform: translateY(-50%); pointer-events: none;
+    color: #9ca3af; transition: color .2s; display: flex; align-items: center;
+}
+.input-wrap:focus-within .input-icon { color: var(--pw-primary); }
+
+.form-input {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--pw-border);
+    border-radius: var(--r-field);
+    font-size: 14.5px; font-family: var(--pw-font);
+    color: var(--pw-text); background: var(--pw-input-bg);
+    transition: border-color .15s, background .15s; outline: none;
+}
+.form-input::placeholder { color: #cbd5e1; }
+.form-input:focus { border-color: var(--pw-primary); background: #fff; }
+.has-toggle { padding-right: 42px; }
+
+.toggle-btn {
+    position: absolute; right: 11px; top: 50%;
+    transform: translateY(-50%); background: none; border: none;
+    cursor: pointer; padding: 4px; color: #9ca3af;
+    display: flex; align-items: center; transition: color .2s;
+}
+.toggle-btn:hover { color: var(--pw-primary); }
+
+/* Password strength (register only) */
+.strength-bar { height: 3px; border-radius: 2px; background: #e5e7eb; margin-top: 7px; overflow: hidden; }
+.strength-fill { height: 100%; border-radius: 2px; transition: all .4s ease; width: 0%; }
+.strength-label { font-size: 11px; margin-top: 3px; font-weight: 600; color: #9ca3af; }
+
+/* ===== Submit ===== */
+.btn-submit {
+    width: 100%; padding: 13px;
+    border: none; border-radius: var(--r-field);
+    font-size: 14.5px; font-weight: 700; font-family: var(--pw-font);
+    cursor: pointer; color: #fff;
+    background: var(--pw-primary);
+    transition: background .15s; margin-top: 8px;
+}
+.btn-submit:hover { background: var(--pw-primary-d); }
+
+/* ===== Footer links ===== */
+.card-footer { text-align: center; margin-top: 20px; }
+.card-footer p { font-size: 13.5px; color: var(--pw-text-2); margin-bottom: 8px; }
+.card-footer a { color: var(--pw-primary); font-weight: 600; text-decoration: none; transition: color .2s; }
+.card-footer a:hover { color: var(--pw-primary-d); text-decoration: underline; }
+.back-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: #9ca3af !important; font-size: 12.5px !important; font-weight: 400 !important;
+    margin-top: 14px;
+}
+.back-link:hover { color: var(--pw-primary) !important; text-decoration: none !important; }
+
+/* ===== Responsive: collapse split ke single column di narrow ===== */
+@media (max-width: 860px) {
+    body { grid-template-columns: 1fr; }
+    .side-visual { display: none; }
+    .card-wrapper { padding: 32px 20px; min-height: 100vh; }
+}
+@media (max-width: 480px) {
+    .card-wrapper { padding: 24px 16px; }
+}
