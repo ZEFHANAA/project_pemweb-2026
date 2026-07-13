@@ -15,7 +15,8 @@ src/.env
 db/data/
 src/.env
 .env
-src/.env.vps
-src/.env.vps_debug
+# SSL certificates (Cloudflare Origin — private keys, never commit)
+nginx/ssl/
 *.docx
 *.pem
+src/.env.vps
