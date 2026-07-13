@@ -602,6 +602,12 @@ async function deleteLokasi(id, btnElement = null) {
         btnElement.innerHTML = '<span class="spinner"></span>';
     }
 
+    const originalText = btnElement ? btnElement.innerHTML : 'Hapus';
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<span class="spinner"></span>';
+    }
+
     try {
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'DELETE',

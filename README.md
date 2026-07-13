@@ -5,13 +5,11 @@ Aplikasi web untuk mencari, menyimpan, dan mengelola lokasi wisata favorit berba
 **Pengembang:** Zefhana Ananda (20240801047)  
 **Mata Kuliah:** Pemrograman Web — 2026
 
-🌍 **Live Demo:** [https://petawisata.my.id](https://petawisata.my.id)
-
 ---
 
 ## Tentang Aplikasi
 
-Aplikasi ini dibuat menggunakan Laravel 12 dengan database MariaDB. Di sisi frontend, peta interaktif ditampilkan menggunakan Leaflet.js dan data pencarian lokasi diambil dari Nominatim API (OpenStreetMap). Seluruh logika frontend ditulis dalam JavaScript tanpa framework tambahan.
+Aplikasi ini dibuat menggunakan Laravel 12 dengan database MariaDB. Di sisi frontend, peta interaktif ditampilkan menggunakan Leaflet.js dan data pencarian lokasi diambil dari Nominatim API (OpenStreetMap). Seluruh logika frontend ditulis dalam Vanilla JavaScript tanpa framework tambahan.
 
 Untuk panel admin, digunakan Filament v3 yang bisa diakses di `/admin`. Panel ini hanya bisa diakses oleh user dengan role `super_admin`. Manajemen role dan permission menggunakan Spatie Permission + Filament Shield.
 
@@ -58,7 +56,7 @@ Lingkungan pengembangan menggunakan Docker (PHP + Nginx + MariaDB).
 |---|---|
 | Backend | Laravel 12, PHP 8.2 |
 | Database | MariaDB 10.11 |
-| Frontend | Blade Templating, CSS, JavaScript |
+| Frontend | HTML, CSS, JavaScript |
 | Peta | Leaflet.js, OpenStreetMap, Nominatim API |
 | Admin Panel | Filament v3 |
 | Permission | Spatie Permission, Filament Shield |
@@ -160,7 +158,7 @@ Semua endpoint lokasi menggunakan session-based auth (cookie), bukan token.
 | GET | /api/lokasi/{id} | Detail satu lokasi |
 | PUT | /api/lokasi/{id} | Update lokasi |
 | DELETE | /api/lokasi/{id} | Hapus lokasi |
-| GET | /api/lokasi/export | Export Excel (.xls) |
+| GET | /api/lokasi/export | Export CSV |
 | PUT | /api/profile | Update profil |
 | PUT | /api/profile/password | Ganti password |
 
