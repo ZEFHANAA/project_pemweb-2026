@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $lokasi->nama_lokasi }} — Lokasi Wisata</title>
     <meta name="description" content="{{ $lokasi->deskripsi ?: 'Lihat detail lokasi '.$lokasi->nama_lokasi.' di peta interaktif.' }}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://petawisata.my.id/lokasi/{{ $lokasi->id }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{{ $lokasi->nama_lokasi }} — Petawisata">
+    <meta property="og:description" content="{{ $lokasi->deskripsi ?: 'Detail lokasi wisata '.$lokasi->nama_lokasi.'.' }}">
+    <meta property="og:url" content="https://petawisata.my.id/lokasi/{{ $lokasi->id }}">
+    <meta property="og:site_name" content="Petawisata">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('favicon.svg') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +23,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #0d1117;
+            background: #0c2d3a;
             color: #111827;
             min-height: 100vh;
         }
@@ -29,9 +38,9 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 20px;
-            background: rgba(13, 17, 23, 0.8);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(255,255,255,.08);
         }
 
@@ -45,8 +54,8 @@
         .header-logo {
             width: 32px; height: 32px;
             border-radius: 8px;
-            background: rgba(37,99,235,.3);
-            border: 1px solid rgba(37,99,235,.4);
+            background: rgba(30,64,175,.3);
+            border: 1px solid rgba(30,64,175,.4);
             display: flex; align-items: center; justify-content: center;
         }
 
@@ -83,7 +92,18 @@
             height: 300px;
             margin-top: 56px;
             overflow: hidden;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
+            background:
+                radial-gradient(circle at 20% 50%, rgba(30,64,175,.22), transparent 55%),
+                radial-gradient(circle at 80% 30%, rgba(99,102,241,.18), transparent 50%),
+                #0c2d3a;
+        }
+        .hero-empty-pattern {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: linear-gradient(to bottom, transparent 10%, #000 70%);
         }
 
         .hero-thumbnail {
@@ -118,7 +138,6 @@
             letter-spacing: .04em;
             margin-bottom: 10px;
             width: fit-content;
-            backdrop-filter: blur(8px);
         }
 
         .hero-title {
@@ -244,11 +263,11 @@
             align-items: center;
             padding: 3px 11px;
             border-radius: 999px;
-            background: #eff6ff;
-            color: #1d4ed8;
+            background: #f1f5f9;
+            color: #0c2d3a;
             font-size: 12px;
             font-weight: 600;
-            border: 1px solid #bfdbfe;
+            border: 1px solid #e2e8f0;
         }
 
         /* ===== ACTIONS ===== */
@@ -276,31 +295,29 @@
         }
 
         .btn-gmaps-full {
-            background: #f0fdf4;
-            color: #16a34a;
-            border-color: #bbf7d0;
+            background: #0c2d3a;
+            color: #fff;
+            border-color: #0c2d3a;
         }
         .btn-gmaps-full:hover {
-            background: #16a34a;
-            color: #fff;
-            border-color: #16a34a;
+            background: #1e293b;
+            border-color: #1e293b;
         }
 
         .btn-share {
-            background: #eff6ff;
-            color: #2563eb;
-            border-color: #bfdbfe;
+            background: #fff;
+            color: #0c2d3a;
+            border-color: #e2e8f0;
             width: 100%;
         }
         .btn-share:hover {
-            background: #2563eb;
-            color: #fff;
-            border-color: #2563eb;
+            background: #f8fafc;
+            border-color: #cbd5e1;
         }
 
         /* ===== FOOTER ===== */
         .footer {
-            background: #0d1117;
+            background: #0c2d3a;
             color: rgba(255,255,255,.3);
             text-align: center;
             padding: 16px;
@@ -325,7 +342,7 @@
             gap: 8px;
             opacity: 0;
             transform: translateY(10px);
-            transition: all .3s cubic-bezier(.34,1.56,.64,1);
+            transition: all .25s ease;
             pointer-events: none;
             z-index: 999;
             border: 1px solid rgba(255,255,255,.08);
@@ -340,6 +357,7 @@
             #map { height: 260px; }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -367,6 +385,8 @@
     <section class="hero">
         @if($thumbnail)
             <img src="{{ $thumbnail }}" alt="{{ $lokasi->nama_lokasi }}" class="hero-thumbnail">
+        @else
+            <div class="hero-empty-pattern" aria-hidden="true"></div>
         @endif
         <div class="hero-overlay">
             <span class="hero-kategori">{{ $lokasi->kategori ?? 'Lokasi' }}</span>
@@ -440,6 +460,25 @@
                             </svg>
                             Buka di Google Maps
                         </a>
+                        @auth
+                            <button class="btn-action btn-save" onclick="saveThisLocation()" style="background:#2563eb;color:#fff;border-color:#2563eb;width:100%;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Simpan Lokasi Ini
+                            </button>
+                        @else
+                            <a class="btn-action btn-save" href="{{ route('login') }}" style="background:#2563eb;color:#fff;border-color:#2563eb;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                                Simpan Lokasi Ini
+                            </a>
+                        @endauth
                         <button class="btn-action btn-share" onclick="copyShareLink()">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="18" cy="5" r="3"/>
@@ -475,23 +514,33 @@
         const NAME = @json($lokasi->nama_lokasi);
         const KATEGORI = @json($lokasi->kategori);
 
-        const colors = {
-            'Pantai': 'blue', 'Gunung': 'green', 'Kota': 'violet',
-            'Alam': 'green', 'Budaya': 'gold', 'Kuliner': 'orange', 'Lainnya': 'red'
-        };
-        const markerColor = colors[KATEGORI] || 'red';
-
         const map = L.map('map', { attributionControl: false }).setView([LAT, LNG], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-        const marker = L.marker([LAT, LNG], {
-            icon: L.icon({
-                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${markerColor}.png`,
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41], iconAnchor: [12, 41],
-                popupAnchor: [1, -34], shadowSize: [41, 41]
-            })
-        }).addTo(map);
+        const markerColors = {
+            'Pantai': '#0d9488', 'Gunung': '#ca8a04', 'Kota': '#7c3aed',
+            'Alam': '#166534', 'Budaya': '#b45309', 'Kuliner': '#ea580c', 'Lainnya': '#94a3b8'
+        };
+        const pinColor = markerColors[KATEGORI] || '#94a3b8';
+        const pinIcon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="
+                width:24px;height:24px;border-radius:50% 50% 50% 0;
+                background:${pinColor};border:2px solid #fff;
+                transform:rotate(-45deg);
+                box-shadow:0 2px 6px rgba(0,0,0,.4);">
+                <div style="
+                    position:absolute;top:4px;left:4px;width:12px;height:12px;
+                    border-radius:50%;background:#fff;transform:rotate(45deg);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:7px;font-weight:700;color:${pinColor};">●</div>
+            </div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 24],
+            popupAnchor: [0, -24]
+        });
+
+        const marker = L.marker([LAT, LNG], { icon: pinIcon }).addTo(map);
         marker.bindPopup(`<strong style="font-family:Inter,sans-serif;font-size:13px;">${NAME}</strong>`).openPopup();
 
         function copyShareLink() {
@@ -513,6 +562,58 @@
             const t = document.getElementById('copyToast');
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        async function saveThisLocation() {
+            try {
+                const response = await fetch('/api/lokasi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        nama_lokasi: NAME,
+                        latitude: LAT,
+                        longitude: LNG,
+                        kategori: KATEGORI,
+                        deskripsi: @json($lokasi->deskripsi)
+                    })
+                });
+
+                if (response.ok) {
+                    window.location.href = '/';
+                } else if (response.status === 409) {
+                    Swal.fire({
+                        title: 'Gagal Menyimpan',
+                        text: 'Lokasi ini sudah ada di daftar simpanan Anda!',
+                        icon: 'info',
+                        background: '#1e293b',
+                        color: '#f8fafc',
+                        confirmButtonColor: '#3b82f6',
+                        confirmButtonText: 'Oke'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Gagal',
+                        text: 'Terjadi kesalahan saat menyimpan lokasi.',
+                        icon: 'error',
+                        background: '#1e293b',
+                        color: '#f8fafc',
+                        confirmButtonColor: '#ef4444'
+                    });
+                }
+            } catch (error) {
+                console.error('Error saving location:', error);
+                Swal.fire({
+                    title: 'Gagal',
+                    text: 'Koneksi terputus. Gagal menyimpan lokasi.',
+                    icon: 'error',
+                    background: '#1e293b',
+                    color: '#f8fafc',
+                    confirmButtonColor: '#ef4444'
+                });
+            }
         }
     </script>
 </body>

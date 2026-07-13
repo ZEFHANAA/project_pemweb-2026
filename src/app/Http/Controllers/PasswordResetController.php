@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class PasswordResetController extends Controller
 {
@@ -78,7 +79,7 @@ class PasswordResetController extends Controller
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'password' => 'required|min:8|confirmed',
-            'token' => 'required'
+            'token' => 'required|string|size:64'
         ], [
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
@@ -98,9 +99,10 @@ class PasswordResetController extends Controller
             return back()->withInput()->with('error', 'Token tidak valid atau sudah kedaluwarsa!');
         }
 
-        // Cek kedaluwarsa (misal 60 menit)
+        // Cek kedaluwarsa (default 60 menit via config auth.passwords.users.expire)
+        $expiryMinutes = (int) config('auth.passwords.users.expire', 60);
         $token_creation = Carbon::parse($check_token->created_at);
-        if ($token_creation->addMinutes(60)->isPast()) {
+        if ($token_creation->addMinutes($expiryMinutes)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return back()->withInput()->with('error', 'Token sudah kedaluwarsa. Silakan minta link baru.');
         }
@@ -116,6 +118,13 @@ class PasswordResetController extends Controller
 
         // Hapus token
         DB::table('password_reset_tokens')->where(['email'=> $request->email])->delete();
+
+        // ponytail: logout current session kalau user (mis. sudah login di device ini) biar tidak ada window authenticated sebentar
+        if (Auth::check()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return redirect()->route('login')->with('success', 'Password Anda telah berhasil diubah! Silakan masuk.');
     }

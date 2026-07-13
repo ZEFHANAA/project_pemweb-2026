@@ -37,7 +37,7 @@
                     <!-- Button -->
                     <tr>
                         <td style="padding: 24px 36px 0;">
-                            <a href="{{ $action_link }}" target="_blank" style="display: inline-block; padding: 12px 28px; background-color: #2563eb; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 8px;">Reset Password</a>
+                            <a href="{{ $action_link }}" target="_blank" style="display: inline-block; padding: 12px 28px; background-color: #0c2d3a; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 6px;">Reset Password</a>
                         </td>
                     </tr>
 

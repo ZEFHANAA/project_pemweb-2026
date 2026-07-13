@@ -29,8 +29,8 @@ class LokasiController extends Controller
 
         $validated = $request->validate([
             'nama_lokasi' => 'required|string|max:255',
-            'latitude'    => 'required|numeric',
-            'longitude'   => 'required|numeric',
+            'latitude'    => 'required|numeric|between:-90,90',
+            'longitude'   => 'required|numeric|between:-180,180',
             'deskripsi'   => 'nullable|string|max:2000',
             'kategori'    => 'nullable|string|max:50',
         ]);
@@ -40,6 +40,17 @@ class LokasiController extends Controller
         }
 
         $validated['user_id'] = Auth::id();
+
+        // Check for duplicates based on coordinates (rounded to 4 decimals ~11m accuracy)
+        $exists = Lokasi::where('user_id', $validated['user_id'])
+            ->whereRaw('ROUND(latitude, 4) = ?', [round($validated['latitude'], 4)])
+            ->whereRaw('ROUND(longitude, 4) = ?', [round($validated['longitude'], 4)])
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'Lokasi ini sudah ada di daftar simpanan Anda'], 409);
+        }
+
         $lokasi = Lokasi::create($validated);
         return response()->json($lokasi, 201);
     }
@@ -52,9 +63,9 @@ class LokasiController extends Controller
             return response()->json(['message' => 'Lokasi tidak ditemukan'], 404);
         }
 
-        // Strict ownership check (IDOR fix)
-        if (!Auth::check() || Auth::id() !== $lokasi->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        // Strict ownership check via private helper
+        if (($err = $this->authorizeOwnership($lokasi)) !== null) {
+            return response()->json(['message' => $err], 401);
         }
 
         return response()->json($lokasi, 200);
@@ -68,15 +79,15 @@ class LokasiController extends Controller
             return response()->json(['message' => 'Lokasi tidak ditemukan'], 404);
         }
 
-        // Strict ownership check (IDOR fix)
-        if (!Auth::check() || Auth::id() !== $lokasi->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        // Strict ownership check via private helper
+        if (($err = $this->authorizeOwnership($lokasi)) !== null) {
+            return response()->json(['message' => $err], 401);
         }
 
         $validated = $request->validate([
             'nama_lokasi' => 'sometimes|string|max:255',
-            'latitude'    => 'sometimes|numeric',
-            'longitude'   => 'sometimes|numeric',
+            'latitude'    => 'sometimes|numeric|between:-90,90',
+            'longitude'   => 'sometimes|numeric|between:-180,180',
             'deskripsi'   => 'nullable|string|max:2000',
             'kategori'    => 'nullable|string|max:50',
         ]);
@@ -93,9 +104,9 @@ class LokasiController extends Controller
             return response()->json(['message' => 'Lokasi tidak ditemukan'], 404);
         }
 
-        // Strict ownership check (IDOR fix)
-        if (!Auth::check() || Auth::id() !== $lokasi->user_id) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        // Strict ownership check via private helper
+        if (($err = $this->authorizeOwnership($lokasi)) !== null) {
+            return response()->json(['message' => $err], 401);
         }
 
         $lokasi->delete();
@@ -315,5 +326,20 @@ class LokasiController extends Controller
         }
 
         return view('lokasi-detail', compact('lokasi', 'thumbnail'));
+    }
+
+    /**
+     * Centralized ownership check — DRY pattern reused by show/update/destroy.
+     * Returns null if authorized, otherwise returns an error message string.
+     */
+    private function authorizeOwnership(Lokasi $lokasi): ?string
+    {
+        if (!Auth::check()) {
+            return 'Unauthorized';
+        }
+        if (Auth::id() !== $lokasi->user_id) {
+            return 'Unauthorized — data ini milik pengguna lain';
+        }
+        return null;
     }
 }
