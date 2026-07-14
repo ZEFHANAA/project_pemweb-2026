@@ -20,3 +20,4 @@ nginx/ssl/
 *.docx
 *.pem
 src/.env.vps
+nginx/ssl/*.key
