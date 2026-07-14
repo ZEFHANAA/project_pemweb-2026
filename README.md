@@ -9,34 +9,41 @@ Aplikasi web untuk mencari, menyimpan, dan mengelola lokasi wisata favorit berba
 
 ## Tentang Aplikasi
 
-Aplikasi ini dibuat menggunakan Laravel 12 dengan database MariaDB. Di sisi frontend, peta interaktif ditampilkan menggunakan Leaflet.js dan data pencarian lokasi diambil dari Nominatim API (OpenStreetMap). Seluruh logika frontend ditulis dalam Vanilla JavaScript tanpa framework tambahan.
+Aplikasi ini dibuat pakai Laravel 12 + MariaDB. Frontend pakai Leaflet.js buat peta interaktifnya dan Nominatim API (OpenStreetMap) buat cari lokasi. Semua logic frontend ditulis pakai Vanilla JavaScript, tanpa framework JS tambahan.
 
-Untuk panel admin, digunakan Filament v3 yang bisa diakses di `/admin`. Panel ini hanya bisa diakses oleh user dengan role `super_admin`. Manajemen role dan permission menggunakan Spatie Permission + Filament Shield.
+Panel admin pakai Filament v3 di route `/admin`, cuma bisa diakses sama user yang punya role `super_admin`. Role dan permission dikelola pakai Spatie Permission + Filament Shield.
 
-Lingkungan pengembangan menggunakan Docker (PHP + Nginx + MariaDB).
+Development environment pakai Docker (PHP + Nginx + MariaDB).
 
 ---
 
 ## Fitur
 
-**Autentikasi**
+**Autentikasi & Akun**
 - Register, login, logout
-- Edit profil dan ganti password
-- Halaman login & register dengan layout split-screen
+- Toggle visibility password di form login, register, dan reset password
+- Lupa password — kirim link reset ke email
+- Edit profil (nama, email) dan ganti password
+- Avatar otomatis dari Gravatar berdasarkan email
+- Layout split-screen di halaman login & register
 
 **Peta & Pencarian**
-- Peta interaktif dengan tile dari OpenStreetMap
-- Pencarian lokasi via Nominatim API
+- Peta interaktif pakai tile dari OpenStreetMap
+- Pencarian lokasi lewat Nominatim API
+- Marker clustering — kalau banyak pin di area yang sama, otomatis di-group
+- Custom marker icons biar pin di peta keliatan lebih jelas
 - Foto/thumbnail lokasi otomatis diambil dari Wikipedia API
-- Riwayat pencarian tersimpan di browser (bisa dihapus satu per satu)
+- Riwayat pencarian tersimpan di browser (bisa dihapus satu-satu)
 - Tombol pencarian cepat (Borobudur, Raja Ampat, Gunung Bromo, Danau Toba)
-- Warna pin/marker di peta berbeda tergantung kategori lokasi
-- Dark Mode / Light Mode dengan preferensi tersimpan di browser
+- Warna pin berbeda tergantung kategori lokasi
+- Dark Mode / Light Mode, preferensi tersimpan di browser
 
 **Manajemen Lokasi**
-- Simpan lokasi beserta deskripsi dan kategori
+- Simpan lokasi dengan deskripsi dan kategori
 - Filter daftar lokasi berdasarkan kategori (Gunung, Pantai, dll)
-- Edit dan hapus lokasi (satuan maupun semua sekaligus)
+- Edit dan hapus lokasi (satuan atau semua sekaligus)
+- Konfirmasi hapus pakai SweetAlert popup
+- Error handling juga pakai SweetAlert (bukan alert() bawaan browser)
 - Berbagi lokasi via link publik (bisa dilihat tanpa login)
 - Buka koordinat langsung di Google Maps
 - Export semua lokasi ke file Excel (.xls)
@@ -44,7 +51,7 @@ Lingkungan pengembangan menggunakan Docker (PHP + Nginx + MariaDB).
 **Panel Admin (Filament — `/admin`)**
 - CRUD user dan lokasi
 - Dashboard dengan statistik (total user, total lokasi, kategori terpopuler, dll)
-- Log aktivitas menggunakan Spatie Activity Log
+- Log aktivitas pakai Spatie Activity Log
 - Manajemen role & permission via Filament Shield
 - Edit profil admin
 
@@ -57,12 +64,26 @@ Lingkungan pengembangan menggunakan Docker (PHP + Nginx + MariaDB).
 | Backend | Laravel 12, PHP 8.2 |
 | Database | MariaDB 10.11 |
 | Frontend | HTML, CSS, JavaScript |
-| Peta | Leaflet.js, OpenStreetMap, Nominatim API |
+| Peta | Leaflet.js, Leaflet.markercluster, OpenStreetMap, Nominatim API |
 | Admin Panel | Filament v3 |
 | Permission | Spatie Permission, Filament Shield |
 | Activity Log | Spatie Activity Log (filament-logger) |
+| Alert/Popup | SweetAlert2 |
 | Font | Inter (Google Fonts) |
 | Dev Environment | Docker (PHP + Nginx + MariaDB) |
+
+---
+
+## Keamanan
+
+- CSRF protection di semua form dan API
+- Content Security Policy (CSP) via custom middleware `SecurityHeaders`
+- Header keamanan tambahan: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
+- Password di-hash pakai bcrypt
+- Rate limiting di endpoint login, register, dan reset password
+- Data lokasi terisolasi per user (tidak bisa akses data user lain)
+- Export data hanya berisi data milik user yang login
+- Panel admin cuma bisa diakses role `super_admin`
 
 ---
 
@@ -110,46 +131,13 @@ Akses di browser: `https://project_pemweb.test`
 | Super Admin | admin@admin.com | password |
 | User | user@admin.com | password |
 
-Akun Super Admin sudah terisi beberapa lokasi wisata dummy untuk keperluan demo.
-
----
-
-## Struktur Folder
-
-```
-project_pemweb/
-├── docker-compose.yml
-├── nginx/                          # Konfigurasi Nginx
-├── php/                            # Dockerfile PHP
-├── src/
-│   ├── app/
-│   │   ├── Filament/Admin/
-│   │   │   ├── Resources/          # CRUD User & Lokasi di panel admin
-│   │   │   └── Widgets/            # Widget statistik dashboard
-│   │   ├── Http/Controllers/
-│   │   │   ├── AuthController.php
-│   │   │   ├── LokasiController.php
-│   │   │   └── ProfileController.php
-│   │   └── Models/
-│   ├── database/
-│   │   ├── migrations/
-│   │   └── seeders/
-│   ├── public/
-│   │   ├── css/style.css
-│   │   └── js/script.js
-│   ├── resources/views/
-│   │   ├── auth/                   # Login & Register
-│   │   ├── welcome.blade.php       # Halaman utama (peta)
-│   │   └── lokasi-detail.blade.php # Halaman share lokasi publik
-│   └── routes/web.php
-└── README.md
-```
+Akun Super Admin sudah terisi beberapa lokasi wisata dummy buat keperluan demo.
 
 ---
 
 ## API Endpoints
 
-Semua endpoint lokasi menggunakan session-based auth (cookie), bukan token.
+Semua endpoint lokasi pakai session-based auth (cookie), bukan token.
 
 | Method | Endpoint | Keterangan |
 |---|---|---|
@@ -158,7 +146,7 @@ Semua endpoint lokasi menggunakan session-based auth (cookie), bukan token.
 | GET | /api/lokasi/{id} | Detail satu lokasi |
 | PUT | /api/lokasi/{id} | Update lokasi |
 | DELETE | /api/lokasi/{id} | Hapus lokasi |
-| GET | /api/lokasi/export | Export CSV |
+| GET | /api/lokasi/export | Export ke Excel |
 | PUT | /api/profile | Update profil |
 | PUT | /api/profile/password | Ganti password |
 
@@ -166,10 +154,38 @@ Header `X-CSRF-TOKEN` wajib disertakan di request POST, PUT, dan DELETE.
 
 ---
 
-## Keamanan
+## Struktur Folder
 
-- CSRF protection di semua form dan API
-- Password di-hash pakai bcrypt
-- Data lokasi terisolasi per user (tidak bisa akses data user lain)
-- Export CSV hanya berisi data milik user yang login
-- Panel admin hanya bisa diakses role `super_admin`
+```
+project_pemweb/
+├── docker-compose.yml
+├── nginx/                          # Konfigurasi Nginx + SSL
+├── php/                            # Dockerfile PHP + entrypoint
+├── src/
+│   ├── app/
+│   │   ├── Filament/Admin/
+│   │   │   ├── Resources/          # CRUD User & Lokasi di panel admin
+│   │   │   └── Widgets/            # Widget statistik dashboard
+│   │   ├── Http/
+│   │   │   ├── Controllers/
+│   │   │   │   ├── AuthController.php
+│   │   │   │   ├── LokasiController.php
+│   │   │   │   ├── ProfileController.php
+│   │   │   │   └── PasswordResetController.php
+│   │   │   └── Middleware/
+│   │   │       └── SecurityHeaders.php
+│   │   └── Models/
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   ├── public/
+│   │   ├── css/style.css
+│   │   └── js/script.js
+│   ├── resources/views/
+│   │   ├── auth/                   # Login, Register, Forgot & Reset Password
+│   │   ├── errors/                 # Custom 404
+│   │   ├── welcome.blade.php       # Halaman utama (peta)
+│   │   └── lokasi-detail.blade.php # Halaman share lokasi publik
+│   └── routes/web.php
+└── README.md
+```
